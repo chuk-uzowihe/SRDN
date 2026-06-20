@@ -1,0 +1,31 @@
+[project]
+name = "srdn"
+version = "0.1.0"
+description = "SRDN: recurrence-complete gated delta-rule linear attention with state-conditioned projections"
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.6",
+    "numpy",
+    "scipy",                # graph-RL Delaunay graph sampling
+    "einops",
+    "wandb",
+    "pydantic",             # lm-engine (canonical M2RNN baseline)
+    "transformers",         # fla dependency
+    # fla MUST be this git commit: the only version with BOTH Mamba3 and a working
+    # NVIDIA GDN-2 (PR #855 added Mamba3 before PR #867 removed the use_exp2 kwarg
+    # that GDN-2's vendored chunk op calls). The PyPI 0.5.0 wheel is broken (no fla.ops).
+    "flash-linear-attention @ git+https://github.com/fla-org/flash-linear-attention.git@4b02d15d",
+    # Mamba-3 kernels (fla.layers.Mamba3 is kernel-only; needs the SISO kernels).
+    # Source build: requires nvcc; install with --no-build-isolation.
+    "mamba-ssm",
+]
+
+# External baselines are NOT pip deps -- they are gitignored checkouts under refs/
+# (NVIDIA GDN-2 is non-commercial-licensed and must not be redistributed). See README.
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["srdn", "baselines", "tasks"]

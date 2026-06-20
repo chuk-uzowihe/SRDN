@@ -1,0 +1,8 @@
+refs/
+artifacts/
+__pycache__/
+*.pyc
+.venv/
+wandb/
+*.egg-info/
+.pytest_cache/
