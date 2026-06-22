@@ -14,6 +14,11 @@ nonlinearly on step-(t-1) state (breaks the chunk-parallel form).
   k,v,a,b read sx = rms(q . S)     (the content read, pre-write)
 All conditioning is additive ReZero (gamma=0 at init -> exactly GDN at init).
 
+Cost is O(N) time and O(N) memory (linear attention): the projections are one batched
+matmul over the whole sequence, then a sequential scan whose per-step work touches only
+the current token and the fixed-size state S (dh x dh per head) -- no N-by-N interaction.
+The O(N) activation memory is the BPTT cost the chunked path (sqrt-exact remat) bounds.
+
 Owns its pre-norm and returns the residual DELTA (core does x = x + mixer(x)).
 chunkable: state-carry BPTT (S + conv ring-buffer) -> exact gradient across chunks.
 """
@@ -81,9 +86,12 @@ class SRDNMixer(nn.Module):
         return torch.exp(-A * F.softplus(alogit + dtb))
 
     def _recur(self, q, k, v, alogit, blogit, S):
+        """One token of the state-conditioned gated delta rule. q,k,v,a/b: [B,H,dh]; S: [B,H,dh,dh]."""
         dh = self.dh
+        # q reads the diagonal state summary s0
         s0 = _rmsnorm(torch.diagonal(S, dim1=-2, dim2=-1))
         q = F.silu(q + self.gamma_q.float() * torch.einsum("bhs,hsq->bhq", s0, self.W_qs.float()))
+        # k, v and the a/b gates read the content state sx = q.S (pre-write)
         sx = _rmsnorm((S * _l2norm(q)[..., :, None]).sum(dim=-2))
         alogit = alogit + self.gamma_ax.float() * torch.einsum("bhs,hsc->bhc", sx, self.W_ax.float())
         blogit = blogit + self.gamma_bx.float() * torch.einsum("bhs,hsc->bhc", sx, self.W_bx.float())
@@ -92,12 +100,23 @@ class SRDNMixer(nn.Module):
         v = F.silu(v + self.gamma_vx.float() * torch.einsum("bhs,hsv->bhv", sx, self.W_vx.float()))
         q = _l2norm(q) * (dh ** -0.5)
         k = _l2norm(k)
+        # gated delta-rule write, then read after the write
         retrieved = (S * k[..., :, None]).sum(dim=-2)
         b = 2.0 * torch.sigmoid(blogit)
         u = b * (v - retrieved)
         S = a[..., None, :] * S + k[..., :, None] * u[..., None, :]
         o = (S * q[..., :, None]).sum(dim=-2)
         return o, S
+
+    def _scan(self, q, k, v, alogit, blogit, S):
+        """Sequential recurrence over the time axis. Inputs [B,T,H,dh]; returns
+        (out [B,T,H*dh], final S). The one place the t-loop lives."""
+        B, T = q.shape[0], q.shape[1]
+        outs = []
+        for t in range(T):
+            o, S = self._recur(q[:, t], k[:, t], v[:, t], alogit[:, t], blogit[:, t], S)
+            outs.append(o)
+        return torch.stack(outs, dim=1).reshape(B, T, self.H * self.dh), S
 
     def _init_S(self, B, device):
         return torch.zeros(B, self.H, self.dh, self.dh, device=device, dtype=torch.float32)
@@ -109,46 +128,32 @@ class SRDNMixer(nn.Module):
 
     # ---- interface: forward (full seq), returns residual delta ----
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        B, T, _ = x.shape
         xn = self.norm(x)
         q, k, v = self.qfeat(xn), self.kfeat(xn), self.vfeat(xn)
         alogit, blogit = self._gates(xn)
-        S = self._init_S(B, x.device)
-        outs = []
-        for t in range(T):
-            o, S = self._recur(q[:, t], k[:, t], v[:, t], alogit[:, t], blogit[:, t], S)
-            outs.append(o)
-        return torch.stack(outs, dim=1).reshape(B, T, self.H * self.dh)
+        out, _ = self._scan(q, k, v, alogit, blogit, self._init_S(x.shape[0], x.device))
+        return out
 
-    # ---- interface: chunked (carry S + conv ring-buffer) ----
+    # ---- interface: chunked (carry S + conv ring-buffer across chunk boundaries) ----
     def init_state(self, B, device):
-        hists = {"q": self.qfeat.init_hist(B, device),
-                 "k": self.kfeat.init_hist(B, device),
-                 "v": self.vfeat.init_hist(B, device)}
+        hists = {k: getattr(self, k + "feat").init_hist(B, device) for k in ("q", "k", "v")}
         return (self._init_S(B, device), hists)
 
     def forward_with_state(self, x, state):
         S, hists = state
         hists = dict(hists)
-        B, T, _ = x.shape
         xn = self.norm(x)
         q, hists["q"] = self.qfeat.forward_with_hist(xn, hists["q"])
         k, hists["k"] = self.kfeat.forward_with_hist(xn, hists["k"])
         v, hists["v"] = self.vfeat.forward_with_hist(xn, hists["v"])
         alogit, blogit = self._gates(xn)
-        outs = []
-        for t in range(T):
-            o, S = self._recur(q[:, t], k[:, t], v[:, t], alogit[:, t], blogit[:, t], S)
-            outs.append(o)
-        return torch.stack(outs, dim=1).reshape(B, T, self.H * self.dh), (S, hists)
-
-    _KEYS = ("q", "k", "v")
+        out, S = self._scan(q, k, v, alogit, blogit, S)
+        return out, (S, hists)
 
     def flatten_state(self, state):
+        """(S, hists) -> flat tensor list for core's checkpoint loop. Conv hists are None when short_conv is off."""
         S, h = state
-        if h["q"] is None:
-            return [S]
-        return [S, h["q"], h["k"], h["v"]]
+        return [S] if h["q"] is None else [S, h["q"], h["k"], h["v"]]
 
     def unflatten_state(self, flat):
         if len(flat) == 1:
@@ -156,7 +161,7 @@ class SRDNMixer(nn.Module):
         S, q, k, v = flat
         return (S, {"q": q, "k": k, "v": v})
 
-    # ---- interface: rollout ----
+    # ---- interface: rollout (single token) ----
     def step(self, x_t, state):
         S, hists = state
         hists = dict(hists)
@@ -164,8 +169,7 @@ class SRDNMixer(nn.Module):
         q, hists["q"] = self.qfeat.step(xn, hists["q"])
         k, hists["k"] = self.kfeat.step(xn, hists["k"])
         v, hists["v"] = self.vfeat.step(xn, hists["v"])
-        alogit, blogit = self._gates(xn)
-        o, S = self._recur(q, k, v, alogit, blogit, S)
+        o, S = self._recur(q, k, v, *self._gates(xn), S)
         return o.reshape(x_t.shape[0], self.H * self.dh), (S, hists)
 
 
