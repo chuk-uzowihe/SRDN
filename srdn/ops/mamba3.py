@@ -41,15 +41,16 @@ class Mamba3Mixer(nn.Module):
         # kernel), which is broken at our pin: it cannot consume the state the combined
         # (prefill) kernel produces -- mixed bf16/fp32, then a stride mismatch when coerced.
         # Verified independent of our cache handling (canonical persistent-Cache fails
-        # identically) and across fla history. Forward/training (the combined kernel) is
-        # fine, so Mamba-3 still runs on the full-sequence tasks (FRJT, enwik8); only the
-        # incremental-rollout task (graph-RL) is affected, and Mamba-3 is parallelizable
-        # so it is not the protagonist there. Routing decode through the combined kernel
-        # is possible in principle (Input_States=) but its state contract is undocumented.
+        # identically). Forward/training (the combined kernel) is fine, so Mamba-3 runs on
+        # the full-sequence tasks (FRJT, enwik8); only the incremental-rollout task
+        # (graph-RL) is blocked. Mamba-3 IS a genuine graph-RL contender (argued non-TC0,
+        # arXiv:2603.15569), so this is a real gap to close: route decode through the
+        # working combined kernel via Input_States= (its state contract is undocumented).
+        # TODO(queued): implement combined-kernel decode and enable Mamba-3 on graph-RL.
         raise NotImplementedError(
             "Mamba-3 incremental decode is unavailable (fla mamba3_step_fn kernel bug at "
-            "the pinned fla commit). Mamba-3 supports the full-sequence tasks (FRJT, enwik8) "
-            "but not the streaming-rollout task (graph-RL)."
+            "the pinned fla commit). Mamba-3 currently runs on the full-sequence tasks "
+            "(FRJT, enwik8); graph-RL support is queued (combined-kernel decode)."
         )
 
 
