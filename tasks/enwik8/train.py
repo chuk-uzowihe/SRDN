@@ -18,10 +18,11 @@ from pathlib import Path
 import torch
 import torch.nn.functional as F
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-import srdn
-from tasks.enwik8 import VOCAB_SIZE, load_enwik8, batch as lm_batch
+import srdn  # noqa: E402
+from tasks.enwik8 import VOCAB_SIZE, load_enwik8, batch as lm_batch  # noqa: E402
+from tasks.seeding import set_seed, torch_generator  # noqa: E402
 
 
 def build(arch, args):
@@ -79,8 +80,8 @@ def main():
     p.add_argument("--out", default="")
     args = p.parse_args()
     device = torch.device(args.device)
-    torch.manual_seed(args.seed)
-    gen = torch.Generator(device="cpu").manual_seed(args.seed)
+    set_seed(args.seed)
+    gen = torch_generator(args.seed)
 
     train, val, _ = load_enwik8()
     model = build(args.arch, args).to(device)

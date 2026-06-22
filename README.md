@@ -54,8 +54,11 @@ srdn/
   builders.py  build_srdn / build_transformer / build_mamba3 / build_m2rnn / build_gdn2
   ops/         the ONLY thing that varies -- one token mixer per file, common interface:
     srdn.py · attention.py · mamba3.py · m2rnn.py · gdn2.py   (+ conv.py for the short conv)
-tasks/         frjt, enwik8, graph_rl.
-experiments/   frjt_compare.py, train_lm.py (enwik8), train_graph_rl.py.
+tasks/         one subpackage per task -- each holds its data/generator AND its runner:
+  seeding.py             set_seed + seeded generators (reproducibility, used by every runner)
+  enwik8/   data.py · train.py
+  frjt/     task.py · compare.py
+  graph_traversal/  traversal.py · graph_rl.py · train.py
 tests/         parity (clean cell == original), chunk-equivalence (chunked==full), step-vs-parallel.
 refs/          gitignored symlinks to the external baseline checkouts (below).
 ```
@@ -93,10 +96,11 @@ SRDNLADDER_ROOT=/path/to/srdnladder uv run python tests/test_parity.py        # 
 uv run python tests/test_chunk_equivalence.py --arch all                       # chunked_logits == full-seq (fwd+grad)
 uv run python tests/test_step_parallel.py --arch all                           # rollout step == teacher-forced forward
 
-# experiments  (commands finalized as the runners land)
-# uv run python experiments/frjt_compare.py        --archs srdn,transformer,mamba3,m2rnn_canon,gdn2
-# uv run python experiments/train_lm.py            --arch srdn   # enwik8
-# uv run python experiments/train_graph_rl.py      --architecture srdn ...     # 8GB: --micro-batch-action-budget 4096 --train-sequence-chunk-size 512 --train-remat-chunks
+# experiments (every run is fully determined by --seed)
+uv run python tasks/frjt/compare.py          --archs srdn,transformer,mamba3,m2rnn,gdn2 --seeds 0,1,2
+uv run python tasks/enwik8/train.py          --arch srdn --seed 0
+uv run python tasks/graph_traversal/train.py --architecture srdn --seed 0 \
+    --micro-batch-action-budget 4096 --train-sequence-chunk-size 512 --train-remat-chunks   # 8GB
 ```
 
 ## Sequence checkpointing

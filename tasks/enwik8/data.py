@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-ENWIK8 = Path(__file__).resolve().parents[1] / "artifacts" / "data" / "enwik8"
+ENWIK8 = Path(__file__).resolve().parents[2] / "artifacts" / "data" / "enwik8"
 VOCAB_SIZE = 256
 _SPLITS = (90_000_000, 95_000_000)
 

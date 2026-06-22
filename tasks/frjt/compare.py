@@ -19,10 +19,11 @@ from pathlib import Path
 import torch
 import torch.nn.functional as F
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-import srdn
-from tasks.frjt import FRJTTaskConfig, generate_frjt_batch, frjt_vocab_size
+import srdn  # noqa: E402
+from tasks.frjt import FRJTTaskConfig, generate_frjt_batch, frjt_vocab_size  # noqa: E402
+from tasks.seeding import set_seed  # noqa: E402
 
 IGNORE = -100
 
@@ -75,7 +76,7 @@ def evaluate(model, cfg, depths, args, device):
 
 
 def run_one(arch, seed, args, device):
-    torch.manual_seed(seed)
+    set_seed(seed)
     vocab = frjt_vocab_size(args.max_jump)
     cfg = FRJTTaskConfig(depth_min=args.depth_min, depth_max=args.depth_max, max_jump=args.max_jump,
                          direct_halt_prob=args.direct_halt_prob, dense_supervision=bool(args.dense))

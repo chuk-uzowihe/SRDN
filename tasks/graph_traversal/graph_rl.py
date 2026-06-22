@@ -8,7 +8,7 @@ from collections import deque
 
 import numpy as np
 
-from tasks.graph_traversal import (
+from .traversal import (
     GRAPH_ADJ_CLOSE,
     GRAPH_ADJ_OPEN,
     GRAPH_GOAL,

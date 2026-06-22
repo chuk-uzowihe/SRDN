@@ -17,11 +17,11 @@ from typing import Any
 import numpy as np
 import torch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 import srdn
-from tasks.graph_rl import (
+from tasks.graph_traversal.graph_rl import (
     GraphRLState,
     graph_shortest_distances,
     discounted_action_returns,
@@ -38,6 +38,7 @@ from tasks.graph_rl import (
     step_state,
 )
 from tasks.graph_traversal import GRAPH_GOAL, GRAPH_PAD, GraphTraversalVocab
+from tasks.seeding import set_seed
 
 
 def parse_int_list(value: str) -> list[int]:
@@ -624,9 +625,7 @@ def main() -> None:
     parser.add_argument("--wandb-mode", choices=["online", "offline", "disabled"], default="online")
     args = parser.parse_args()
 
-    torch.manual_seed(int(args.seed))
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(int(args.seed))
+    set_seed(int(args.seed))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     architecture = str(args.architecture)
     # Each mixer selects its own kernel internally (the M2RNN twin uses the xma kernel
