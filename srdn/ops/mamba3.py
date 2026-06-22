@@ -1,7 +1,15 @@
 """Mamba-3 token mixer (fla.layers.Mamba3; needs the mamba-ssm SISO kernels).
 
-Parallelizable / TC0-limited like attention. chunkable=False -> core trains it
-full-seq; rollout uses the FLA Cache. Owns its pre-norm, returns the residual delta.
+Parallelizable / TC0-limited like attention. Full-sequence forward/logits work
+(FRJT + enwik8); chunkable=False so core trains it full-seq.
+
+ROLLOUT (.step) IS UNAVAILABLE: incremental single-token decode routes to
+mamba-ssm's cute step kernel, which errors on multi-step (arg-#2 conv-state dtype)
+at fp32/bf16/fp16 alike -- an upstream mamba-ssm bug, independent of the fla version
+(reproduced on fla git-main too). fla's chunk path can't carry an initial recurrent
+state, so there's no force-chunk decode (the trick that fixes GDN-2). Mamba-3 is
+therefore a forward-only baseline here (FRJT/enwik8); the Transformer covers the
+parallelizable baseline on graph-RL, which needs rollout.
 """
 from __future__ import annotations
 
@@ -11,10 +19,6 @@ from fla.layers import Mamba3
 from fla.models.utils import Cache
 
 from srdn.core import RMSNorm
-
-
-def _one_layer_cache(state) -> Cache:
-    return Cache() if state is None else Cache.from_legacy_cache((state,))
 
 
 class Mamba3Mixer(nn.Module):
@@ -37,11 +41,12 @@ class Mamba3Mixer(nn.Module):
         return None
 
     def step(self, x_t, state):
-        dtype = next(self.mixer.parameters()).dtype
-        cache = _one_layer_cache(state)
-        x = self.norm(x_t).unsqueeze(1).to(dtype)
-        y, _, cache = self.mixer(x, past_key_values=cache, use_cache=True)
-        return y[:, 0].float(), cache[0]
+        raise NotImplementedError(
+            "Mamba-3 single-token rollout is unavailable: mamba-ssm's cute step kernel "
+            "errors on multi-step decode (upstream bug, fla-version-independent). "
+            "Mamba-3 is a forward-only baseline (FRJT/enwik8); it does not run graph-RL "
+            "rollout. Use the Transformer as the parallelizable graph-RL baseline."
+        )
 
 
 __all__ = ["Mamba3Mixer"]

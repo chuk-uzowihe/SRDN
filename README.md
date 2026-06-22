@@ -25,7 +25,11 @@ discriminator). Eval reward/episode (sampled), 4k steps, seed 0:
 | 32   | **5.7**  | 0.4 | 1.1 | 0.7 | _tbd_ |
 | 512  | **10.3** | 3.2 | 2.4 | _tbd_ | _tbd_ |
 | 2048 | **18.1** | 6.3 | 3.6 | _tbd_ | _tbd_ |
-| curriculum reached | **80** | 32 | 64 | 32 | _tbd_ |
+| curriculum reached | **80** | 32 | 64 | 32 | n/a |
+
+Mamba-3 is a forward-only baseline here (FRJT + enwik8): its single-token rollout
+hits an upstream mamba-ssm cute step-kernel bug, so it sits out graph-RL (which needs
+incremental decode); the Transformer is the parallelizable graph-RL baseline.
 
 **enwik8** char-LM (bpc, conv-on, matched mixers, 1500 steps, seed 0):
 
