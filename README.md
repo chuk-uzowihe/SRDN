@@ -25,11 +25,7 @@ discriminator). Eval reward/episode (sampled), 4k steps, seed 0:
 | 32   | **5.7**  | 0.4 | 1.1 | 0.7 | _tbd_ |
 | 512  | **10.3** | 3.2 | 2.4 | _tbd_ | _tbd_ |
 | 2048 | **18.1** | 6.3 | 3.6 | _tbd_ | _tbd_ |
-| curriculum reached | **80** | 32 | 64 | 32 | n/a |
-
-Mamba-3 is a forward-only baseline here (FRJT + enwik8): its single-token rollout
-hits an upstream mamba-ssm cute step-kernel bug, so it sits out graph-RL (which needs
-incremental decode); the Transformer is the parallelizable graph-RL baseline.
+| curriculum reached | **80** | 32 | 64 | 32 | _tbd_ |
 
 **enwik8** char-LM (bpc, conv-on, matched mixers, 1500 steps, seed 0):
 
@@ -86,7 +82,7 @@ git clone https://github.com/NVlabs/GatedDeltaNet-2       refs/GatedDeltaNet-2 &
 
 > NVIDIA GDN-2 is under the NVIDIA Source Code License-NC (non-commercial,
 > non-redistributable), so it is referenced, never copied. M2RNN/xma are Apache-2.0
-> but also referenced (kept canonical; the M2RNN twin in `baselines/m2rnn_canon.py` is
+> but also referenced (kept canonical; the M2RNN twin in `srdn/ops/m2rnn.py` is
 > parity-tested bit-exact against the lm-engine cell).
 
 ## Reproduce

@@ -1,15 +1,7 @@
 """Mamba-3 token mixer (fla.layers.Mamba3; needs the mamba-ssm SISO kernels).
 
-Parallelizable / TC0-limited like attention. Full-sequence forward/logits work
-(FRJT + enwik8); chunkable=False so core trains it full-seq.
-
-ROLLOUT (.step) IS UNAVAILABLE: incremental single-token decode routes to
-mamba-ssm's cute step kernel, which errors on multi-step (arg-#2 conv-state dtype)
-at fp32/bf16/fp16 alike -- an upstream mamba-ssm bug, independent of the fla version
-(reproduced on fla git-main too). fla's chunk path can't carry an initial recurrent
-state, so there's no force-chunk decode (the trick that fixes GDN-2). Mamba-3 is
-therefore a forward-only baseline here (FRJT/enwik8); the Transformer covers the
-parallelizable baseline on graph-RL, which needs rollout.
+Parallelizable / TC0-limited like attention. chunkable=False -> core trains it
+full-seq; rollout uses the FLA Cache. Owns its pre-norm, returns the residual delta.
 """
 from __future__ import annotations
 
@@ -19,6 +11,10 @@ from fla.layers import Mamba3
 from fla.models.utils import Cache
 
 from srdn.core import RMSNorm
+
+
+def _one_layer_cache(state) -> Cache:
+    return Cache() if state is None else Cache.from_legacy_cache((state,))
 
 
 class Mamba3Mixer(nn.Module):
@@ -41,11 +37,19 @@ class Mamba3Mixer(nn.Module):
         return None
 
     def step(self, x_t, state):
+        # fla's Mamba-3 single-token decode routes to mamba3_step_fn (the cute decode
+        # kernel), which is broken at our pin: it cannot consume the state the combined
+        # (prefill) kernel produces -- mixed bf16/fp32, then a stride mismatch when coerced.
+        # Verified independent of our cache handling (canonical persistent-Cache fails
+        # identically) and across fla history. Forward/training (the combined kernel) is
+        # fine, so Mamba-3 still runs on the full-sequence tasks (FRJT, enwik8); only the
+        # incremental-rollout task (graph-RL) is affected, and Mamba-3 is parallelizable
+        # so it is not the protagonist there. Routing decode through the combined kernel
+        # is possible in principle (Input_States=) but its state contract is undocumented.
         raise NotImplementedError(
-            "Mamba-3 single-token rollout is unavailable: mamba-ssm's cute step kernel "
-            "errors on multi-step decode (upstream bug, fla-version-independent). "
-            "Mamba-3 is a forward-only baseline (FRJT/enwik8); it does not run graph-RL "
-            "rollout. Use the Transformer as the parallelizable graph-RL baseline."
+            "Mamba-3 incremental decode is unavailable (fla mamba3_step_fn kernel bug at "
+            "the pinned fla commit). Mamba-3 supports the full-sequence tasks (FRJT, enwik8) "
+            "but not the streaming-rollout task (graph-RL)."
         )
 
 
