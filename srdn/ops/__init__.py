@@ -22,11 +22,11 @@ mamba-ssm kernels that only the baseline mixers need.
 from importlib import import_module
 
 _MODULES = {
-    "SRDNMixer": "ops.srdn",
-    "AttentionMixer": "ops.attention",
-    "Mamba3Mixer": "ops.mamba3",
-    "M2RNNMixer": "ops.m2rnn",
-    "GDN2Mixer": "ops.gdn2",
+    "SRDNMixer": "srdn.ops.srdn",
+    "AttentionMixer": "srdn.ops.attention",
+    "Mamba3Mixer": "srdn.ops.mamba3",
+    "M2RNNMixer": "srdn.ops.m2rnn",
+    "GDN2Mixer": "srdn.ops.gdn2",
 }
 
 

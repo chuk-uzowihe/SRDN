@@ -28,4 +28,4 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["srdn", "ops", "tasks"]
+packages = ["srdn", "srdn.ops", "tasks"]

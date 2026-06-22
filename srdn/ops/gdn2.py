@@ -19,9 +19,9 @@ import torch
 import torch.nn as nn
 from fla.models.utils import Cache
 
-from srdn.norm import RMSNorm
+from srdn.core import RMSNorm
 
-_REFS = Path(__file__).resolve().parents[1] / "refs"
+_REFS = Path(__file__).resolve().parents[2] / "refs"
 
 
 def import_gdn2_layer(gdn2_repo=None) -> type[nn.Module]:

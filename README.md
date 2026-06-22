@@ -48,21 +48,20 @@ the shared scaffold (block wiring, embedding, channel mixer, sqrt-exact-BPTT rem
 loop, rollout) lives in `srdn/`, and each token mixer is one isolated file in `ops/`.
 ```
 srdn/
-  core.py      shared Block (x = x + mixer(x); x = channel(x)) + SRDNLM scaffold
-               (logits / chunked_logits / init_states / step), generic over any mixer
+  core.py      RMSNorm, the state-routed MoE, shared Block (x = x + mixer(x); x = channel(x))
+               + SRDNLM scaffold (logits / chunked_logits / init_states / step), generic over any mixer
   channel.py   the SHARED channel mixer (SwiGLU FFN, optional MoE) -- identical for ALL archs
   builders.py  build_srdn / build_transformer / build_mamba3 / build_m2rnn / build_gdn2
-  moe.py, norm.py
-ops/           the ONLY thing that varies -- one token mixer per file, common interface:
-  srdn.py · attention.py · mamba3.py · m2rnn.py · gdn2.py   (+ conv.py for the short conv)
+  ops/         the ONLY thing that varies -- one token mixer per file, common interface:
+    srdn.py · attention.py · mamba3.py · m2rnn.py · gdn2.py   (+ conv.py for the short conv)
 tasks/         frjt, enwik8, graph_rl.
 experiments/   frjt_compare.py, train_lm.py (enwik8), train_graph_rl.py.
 tests/         parity (clean cell == original), chunk-equivalence (chunked==full), step-vs-parallel.
 refs/          gitignored symlinks to the external baseline checkouts (below).
 ```
-The external baseline mixers (`ops/mamba3.py`, `ops/m2rnn.py`, `ops/gdn2.py`) load
-their cells from `refs/` at runtime; `ops/__init__.py` imports lazily so building
-SRDN needs neither fla nor the refs.
+The external baseline mixers (`srdn/ops/{mamba3,m2rnn,gdn2}.py`) load their cells
+from `refs/` at runtime; `srdn/ops/__init__.py` imports lazily so building SRDN needs
+neither fla nor the refs.
 
 ## Setup
 

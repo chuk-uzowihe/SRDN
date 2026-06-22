@@ -10,7 +10,7 @@ import torch.nn as nn
 from fla.layers import Mamba3
 from fla.models.utils import Cache
 
-from srdn.norm import RMSNorm
+from srdn.core import RMSNorm
 
 
 def _one_layer_cache(state) -> Cache:

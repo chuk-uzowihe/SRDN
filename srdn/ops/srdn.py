@@ -25,8 +25,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from srdn.norm import RMSNorm
-from ops.conv import QKVFeature
+from srdn.core import RMSNorm
+from .conv import QKVFeature
 
 
 def _l2norm(x: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:

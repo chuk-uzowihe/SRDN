@@ -22,9 +22,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from srdn.norm import RMSNorm
+from srdn.core import RMSNorm
 
-_REFS = Path(__file__).resolve().parents[1] / "refs"
+_REFS = Path(__file__).resolve().parents[2] / "refs"
 _LM_ENGINE = _REFS / "lm-engine"
 _XMA = _REFS / "xma"
 

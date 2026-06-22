@@ -1,28 +1,99 @@
-"""Shared model scaffold: Block + LM. The ONLY thing that varies across
-architectures is the token mixer (ops/*.py) plugged into Block; the channel mixer,
-embedding, chunked-BPTT remat loop, rollout, and masking all live here, once.
+"""Shared model core: norm, the state-routed MoE, and the scaffold (Block + LM).
+
+The ONLY thing that varies across architectures is the token mixer (srdn/ops/*.py)
+plugged into Block; the channel mixer (srdn/channel.py), embedding, chunked-BPTT
+remat loop, rollout, and masking all live here / next to here, once.
 
 Block:  x = x + mixer(x) ; x = channel(x)        (mixer/channel own their pre-norm)
 LM:     embed -> blocks -> final_norm -> tied head; plus the policy surface
         (logits / chunked_logits / init_states / step) the tasks drive.
 
-A mixer must implement: forward(x)->y, .chunkable (bool). chunkable mixers also
-implement init_state/forward_with_state/flatten_state/unflatten_state. All mixers
-implement step(x_t, state)->(y_t, state) for rollout (a parallelizable mixer's
-"state" is its own KV/conv cache).
+A mixer implements: forward(x)->y, .chunkable (bool). chunkable mixers also implement
+init_state / forward_with_state / flatten_state / unflatten_state. All mixers
+implement init_state + step(x_t, state)->(y_t, state) for rollout (a parallelizable
+mixer's "state" is its own KV/conv cache).
 """
 from __future__ import annotations
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 
-from .channel import ChannelMixer
-from .norm import RMSNorm
+
+# ----------------------------------------------------------------- norm
+class RMSNorm(nn.Module):
+    def __init__(self, d: int, eps: float = 1e-5) -> None:
+        super().__init__()
+        self.weight = nn.Parameter(torch.ones(d))
+        self.eps = eps
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        xf = x.float()
+        n = xf * torch.rsqrt(xf.pow(2).mean(-1, keepdim=True) + self.eps)
+        return (n * self.weight.float()).type_as(self.weight)
 
 
+# ----------------------------------------------------------------- state-routed MoE
+class StateRoutedMoE(nn.Module):
+    """Top-k mixture of SwiGLU experts; expert/router inputs decoupled.
+
+    The state enters via the ROUTER, not the additive write path: experts see
+    `x_in`, the router sees `route_in`. Which expert fires is a function of what the
+    recurrence has accumulated. forward(x_in, route_in) -> (out, router_logits).
+    """
+
+    def __init__(self, d_in: int, d_out: int, d_route: int,
+                 n_experts: int, top_k: int, d_hidden: int = 0) -> None:
+        super().__init__()
+        assert 1 <= top_k <= n_experts
+        self.E, self.k = int(n_experts), int(top_k)
+        self.d_hidden = int(d_hidden)
+        self.router = nn.Linear(d_route, self.E, bias=False)
+        inner = self.d_hidden if self.d_hidden > 0 else d_out
+        self.w_gate = nn.Parameter(torch.empty(self.E, d_in, inner))
+        self.w_up = nn.Parameter(torch.empty(self.E, d_in, inner))
+        bound = d_in ** -0.5
+        nn.init.uniform_(self.w_gate, -bound, bound)
+        nn.init.uniform_(self.w_up, -bound, bound)
+        if self.d_hidden > 0:
+            self.w_down = nn.Parameter(torch.empty(self.E, self.d_hidden, d_out))
+            nn.init.uniform_(self.w_down, -(self.d_hidden ** -0.5), self.d_hidden ** -0.5)
+
+    def forward(self, x_in: torch.Tensor, route_in: torch.Tensor):
+        logits = self.router(route_in).float()
+        topv, topi = logits.topk(self.k, dim=-1)
+        topw = F.softmax(topv, dim=-1)
+        weights = torch.zeros_like(logits).scatter(-1, topi, topw)
+        g = torch.einsum("bd,edw->bew", x_in, self.w_gate.float())
+        u = torch.einsum("bd,edw->bew", x_in, self.w_up.float())
+        act = F.silu(g) * u
+        if self.d_hidden > 0:
+            act = torch.einsum("beh,ehd->bed", act, self.w_down.float())
+        out = torch.einsum("be,bew->bw", weights, act)
+        return out, logits
+
+
+def moe_aux_loss(router_logits: list[torch.Tensor], top_k: int) -> torch.Tensor:
+    """Switch-transformer load-balance loss: E * sum_e f_e*P_e (0 if list empty)."""
+    if not router_logits:
+        return torch.zeros(())
+    total = 0.0
+    for lg in router_logits:
+        flat = lg.reshape(-1, lg.shape[-1])
+        E = flat.shape[-1]
+        P = F.softmax(flat, dim=-1).mean(0)
+        topi = flat.topk(top_k, dim=-1).indices
+        f = F.one_hot(topi, E).sum(1).clamp(max=1).float().mean(0)
+        total = total + E * (f * P).sum()
+    return total / len(router_logits)
+
+
+# ----------------------------------------------------------------- scaffold
 class Block(nn.Module):
-    def __init__(self, mixer: nn.Module, channel: ChannelMixer) -> None:
+    """x = x + mixer(x) ; x = channel(x). `mixer` and `channel` own their pre-norms."""
+
+    def __init__(self, mixer: nn.Module, channel: nn.Module) -> None:
         super().__init__()
         self.mixer = mixer
         self.channel = channel
@@ -35,7 +106,6 @@ class Block(nn.Module):
         x = x.float() + self.mixer(x).float()
         return self.channel(x)
 
-    # chunked: carry the mixer's recurrent state across the chunk boundary
     def forward_with_state(self, x, state):
         y, state = self.mixer.forward_with_state(x, state)
         x = x.float() + y.float()
@@ -85,7 +155,6 @@ class SRDNLM(nn.Module):
             return self.logits(tokens)
         B = int(tokens.shape[0])
         states = [b.mixer.init_state(B, tokens.device) for b in self.blocks]
-        # per-block flat lengths, to slice the flat tuple back apart inside run_chunk
         lens = [len(b.mixer.flatten_state(s)) for b, s in zip(self.blocks, states)]
 
         def flatten(sts):
@@ -170,9 +239,9 @@ def _detach_state(s):
 
 
 def _merge_state(mask, new, old):
-    """Keep `new` rows where mask is True, else `old`, through nested state. A None
-    on either side means "no prior/new state at this slot" -> take whatever exists
-    (e.g. first rollout step, where a library cache starts None and is fully populated)."""
+    """Keep `new` rows where mask is True, else `old`, through nested state. A None on
+    either side means take whatever exists (e.g. first rollout step, where a library
+    cache starts None and is fully populated)."""
     if old is None or new is None:
         return new if new is not None else old
     if isinstance(new, torch.Tensor):
@@ -187,4 +256,4 @@ def _merge_state(mask, new, old):
     return new
 
 
-__all__ = ["Block", "SRDNLM"]
+__all__ = ["RMSNorm", "StateRoutedMoE", "moe_aux_loss", "Block", "SRDNLM"]

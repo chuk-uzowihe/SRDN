@@ -13,8 +13,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .moe import StateRoutedMoE
-from .norm import RMSNorm
+from .core import RMSNorm, StateRoutedMoE
 
 
 class ChannelMixer(nn.Module):
