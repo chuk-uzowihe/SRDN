@@ -1,0 +1,60 @@
+{
+  "task": "enwik8",
+  "arch": "gdn2",
+  "args": {
+    "arch": "gdn2",
+    "short_conv": true,
+    "d_model": 128,
+    "n_layers": 2,
+    "n_heads": 4,
+    "ffn_mult": 2.0,
+    "seq_len": 256,
+    "batch": 32,
+    "steps": 1500,
+    "lr": 0.003,
+    "eval_every": 250,
+    "seed": 0,
+    "mamba_state": 64,
+    "mamba_head_dim": 48,
+    "m2rnn_head_dim": 50,
+    "gdn2_head_dim": 28,
+    "gdn2_repo": "/home/chuk/dev/SRDN/refs/GatedDeltaNet-2",
+    "device": "cuda",
+    "out": "results/enwik8/gdn2_s0.json"
+  },
+  "params": 432128,
+  "final_val_bpc": 2.199986440913651,
+  "history": [
+    {
+      "step": 250,
+      "train_bpc": 2.6022693182225067,
+      "val_bpc": 2.574846921018577
+    },
+    {
+      "step": 500,
+      "train_bpc": 2.439082892020727,
+      "val_bpc": 2.372652034883036
+    },
+    {
+      "step": 750,
+      "train_bpc": 2.3705409263458637,
+      "val_bpc": 2.3301228966056304
+    },
+    {
+      "step": 1000,
+      "train_bpc": 2.333279509175229,
+      "val_bpc": 2.230892884156591
+    },
+    {
+      "step": 1250,
+      "train_bpc": 2.3553244173454746,
+      "val_bpc": 2.2264627615551844
+    },
+    {
+      "step": 1500,
+      "train_bpc": 1.9227908021479247,
+      "val_bpc": 2.199986440913651
+    }
+  ],
+  "wall_sec": 18.0
+}

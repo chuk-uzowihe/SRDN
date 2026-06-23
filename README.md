@@ -15,31 +15,52 @@ multi-timescale; the read goes straight to the residual.
 
 ## Results
 
-2-layer stacks, token mixer swapped, identical SwiGLU FFN, matched params (~0.43M).
+2-layer stacks, only the token mixer swapped, identical SwiGLU FFN, one 8 GB consumer GPU.
+Params reported per row (matched `d_model`; the recurrent cells land ~0.43M, Mamba-3 is
+heavier because it carries a state_size=128, attention is lighter).
 
-**Graph traversal RL** (center-curriculum, 256 nodes — the recurrence-complete
-discriminator). Eval reward/episode (sampled), 4k steps, seed 0:
+**FRJT** (Flip-Register Jump Table, arXiv:2510.06828 — single-cell state tracking).
+Halt-class accuracy, trained at depth 16, evaluated to depth 128; mean over 3 seeds:
+
+| arch | params | d16 | d32 | d64 | d128 |
+|---|---|---|---|---|---|
+| **SRDN** | 206k | 0.991 | 0.995 | 0.992 | **0.990** |
+| GDN-2 | 218k | 0.979 | 0.963 | 0.885 | 0.827 |
+| M2RNN | 164k | 0.718 | 0.733 | 0.703 | 0.688 |
+| Mamba-3 | 211k | 0.680 | 0.578 | 0.545 | 0.541 |
+| Transformer | 165k | 0.606 | 0.572 | 0.590 | 0.588 |
+
+SRDN holds ~0.99 flat as depth grows; parallelizable models (GDN-2, Mamba-3, Transformer)
+degrade. M2RNN is recurrence-complete yet stuck ~0.70 — evidence that recurrence-completeness
+is *necessary but not sufficient* (see Limitations; fairness diagnostic for the small
+M2RNN/Mamba-3 FRJT configs in progress).
+
+**enwik8** char-LM (bpc, dense SwiGLU FFN, seq 256, 1500 steps, 3 seeds, mean ± std):
+
+| arch | params | val bpc |
+|---|---|---|
+| M2RNN | 433.5k | 2.149 ± .019 |
+| **SRDN** | 438.9k | **2.159 ± .021** |
+| GDN-2 | 432.1k | 2.180 ± .019 |
+| Mamba-3 | 506.0k | 2.327 ± .043 |
+| Transformer | 361.1k | 2.508 ± .041 |
+
+The three delta-rule cells cluster within 0.03 bpc (overlapping within 1σ): SRDN ties the
+strong recurrent baselines on plain LM — no quality tax for its state-tracking machinery.
+
+**Graph traversal RL** (center-curriculum, 256 nodes — the recurrence-complete discriminator).
+Eval reward/episode (sampled), 4k steps, seed 0:
 
 | eval len | SRDN | M2RNN | GDN-2 | Transformer | Mamba-3 |
 |---|---|---|---|---|---|
-| 32   | **5.7**  | 0.4 | 1.1 | 0.7 | _tbd_ |
+| 32   | **5.7**  | 0.4 | 1.1 | _tbd_ | _tbd_ |
 | 512  | **10.3** | 3.2 | 2.4 | _tbd_ | _tbd_ |
 | 2048 | **18.1** | 6.3 | 3.6 | _tbd_ | _tbd_ |
-| curriculum reached | **80** | 32 | 64 | 32 | _tbd_ |
+| curriculum reached | **80** | 32 | 64 | _tbd_ | _tbd_ |
 
-**enwik8** char-LM (bpc, conv-on, matched mixers, 1500 steps, seed 0):
-
-| SRDN | GDN-2 | M2RNN |
-|---|---|---|
-| **2.059** | 2.070 | 2.089 |
-
-**FRJT** (Flip-Register Jump Table, arXiv:2510.06828 — single-cell state tracking):
-recurrence-complete holds as jump-table depth grows; parallelizable degrades. _(rerun
-with the current cell + full baseline set pending.)_
-
-> Status: the architecture + baselines + sequence-checkpointing are implemented and
-> tested; the FRJT rerun, the Transformer/Mamba-3 graph-RL runs, and multi-seed are
-> in progress. Tables fill in as runs land.
+> Status: FRJT and enwik8 complete (3 seeds). SRDN/M2RNN/GDN-2 graph-RL carried over from the
+> validated runs; the Transformer (fresh) and Mamba-3 (pending the decode fix) graph-RL runs
+> are still to come.
 
 ## Layout
 
