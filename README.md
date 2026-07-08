@@ -1,16 +1,3 @@
-# SRDN — recurrence-complete state-reading RWKV-7
-
-SRDN is RWKV-7 whose projections are conditioned on the cell's own recurrent state
-(`s0 = rmsnorm(diag S)` → r; `sx = rmsnorm(q·S)` → k/v/w/a via low-rank read queries),
-making it recurrence-complete: the recurrence cannot be flattened into a chunk-parallel
-(TC⁰) form. All conditioning is zero-initialized, so SRDN is exactly RWKV-7 at init —
-verified against `fla`'s kernels. At matched parameters it converges to RWKV-7 on
-language modeling as scale grows while leading every baseline on state tracking
-(FRJT: +8 points over the strongest baseline, +17 over its own RWKV-7 base; against a
-measured no-tracking floor of ~0.64, not 0.5).
-
-Numbers, protocol, and per-seed histories: `results/` + `artifacts/param_equalization.json`.
-
 ## Setup
 
 Requirements: a CUDA GPU (8 GB is enough for everything in `results/`), NVIDIA driver
