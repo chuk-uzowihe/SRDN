@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Rollout decode (.step, token by token) == teacher-forced full-seq forward, at every
-position. The policy is trained on the parallel forward but acts via .step, so they
-must agree. All five archs.
+position, for every arch with a step path (m2rnn is full-sequence-forward only).
 
   uv run python tests/test_step_parallel.py --arch all
 """
@@ -39,33 +38,47 @@ def _report(name, model, device, tol):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--arch", choices=["srdn", "transformer", "mamba3", "m2rnn", "gdn2", "all"], default="all")
+    p.add_argument("--arch", choices=["srdn", "transformer", "mamba3", "gdn2", "rwkv7", "all"], default="all")
     args = p.parse_args()
     V = 261
     cpu, cuda = torch.device("cpu"), (torch.device("cuda") if torch.cuda.is_available() else None)
 
     if args.arch in ("srdn", "all"):
-        torch.manual_seed(0)
-        for sc in (False, True):
-            _report(f"srdn conv={int(sc)}", srdn.build_srdn(V, 64, 2, 4, 16, 2.0, short_conv=sc), cpu, 1e-4)
+        # SwiGLU channel: the only srdn configuration with a rollout step path (the faithful
+        # channel mix is full-sequence-forward only). CUDA-only (fla triton output ops).
+        if cuda is None:
+            print("srdn: SKIP (CUDA)")
+        else:
+            torch.manual_seed(0)
+            _report("srdn", srdn.build_srdn(V, 64, 2, 2.0, faithful_channel_mix=False), cuda, 2e-2)
     if args.arch in ("transformer", "all"):
         torch.manual_seed(0)
         _report("transformer", srdn.build_transformer(V, 64, 2, 4, 2.0), cpu, 1e-4)
     if args.arch in ("mamba3", "all"):
-        # Mamba-3 has no working incremental decode at the pinned fla (mamba3_step_fn
-        # kernel bug); it is a full-sequence-only baseline (FRJT, enwik8). No rollout
-        # -> nothing to check here. See srdn/ops/mamba3.py.
-        print("mamba3             SKIP (no incremental decode; full-sequence-only baseline)")
-    if args.arch in ("m2rnn", "all"):
-        dev = cuda or cpu
-        torch.manual_seed(0)
-        _report("m2rnn", srdn.build_m2rnn(V, 64, 2, 4, 16, 2.0, kernel_size=4), dev, 2e-3 if cuda else 1e-4)
+        # Mamba-3 decode runs the combined kernel at seq-len 1 with Input_States (fla's
+        # own CUTE step kernel is broken at our pin). CUDA-only; loose tol (bf16 kernel).
+        if cuda is None:
+            print("mamba3             SKIP (CUDA)")
+        else:
+            torch.manual_seed(0)
+            # tol: the SISO decode step and the chunked parallel op are DIFFERENT bf16
+            # kernels, and inductor/autotune recompiles shift the worst-element error by
+            # 1-3e-2 across equivalent builds (measured); 5e-2 is outside that noise band
+            _report("mamba3", srdn.build_mamba3(V, 64, 2), cuda, 5e-2)
     if args.arch in ("gdn2", "all"):
         if cuda is None:
             print("gdn2: SKIP (CUDA)")
         else:
             torch.manual_seed(0)
             _report("gdn2", srdn.build_gdn2(V, 64, 2, 4, 16, 2.0), cuda, 2e-3)
+    if args.arch in ("rwkv7", "all"):
+        # RWKV-7: decode (fused_recurrent) vs full-seq, both eval-mode (<64 -> same kernel).
+        # CUDA-only; loose tol (bf16 LoRA path). 2-layer exercises v_first produce->consume.
+        if cuda is None:
+            print("rwkv7: SKIP (CUDA)")
+        else:
+            torch.manual_seed(0)
+            _report("rwkv7", srdn.build_rwkv7(V, 64, 2), cuda, 2e-2)
 
 
 if __name__ == "__main__":

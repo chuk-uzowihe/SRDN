@@ -3,7 +3,7 @@
 
 This is the correctness gate for sequence checkpointing: with detach_boundaries=False
 the chunked sqrt-exact-BPTT pass must reproduce the full-sequence forward + gradient
-(to fp32 / triton-kernel tolerance). SRDN runs on CPU; M2RNN/GDN-2 need CUDA.
+(to fp32 / triton-kernel tolerance). CUDA-only (fla/triton kernels).
 
   uv run python tests/test_chunk_equivalence.py --arch all
 """
@@ -53,22 +53,10 @@ def _report(name, model, device, *, chunk_size, tol_logit, tol_rel):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--arch", choices=["srdn", "m2rnn", "gdn2", "all"], default="all")
+    p.add_argument("--arch", choices=["srdn", "gdn2", "rwkv7", "all"], default="all")
     args = p.parse_args()
     V = 261
-    if args.arch in ("srdn", "all"):
-        torch.manual_seed(0)
-        for sc in (False, True):
-            _report(f"srdn conv={int(sc)}", srdn.build_srdn(V, 64, 2, 4, 16, 2.0, short_conv=sc),
-                    torch.device("cpu"), chunk_size=13, tol_logit=1e-4, tol_rel=1e-3)
     cuda = torch.cuda.is_available()
-    if args.arch in ("m2rnn", "all"):
-        if not cuda:
-            print("m2rnn: SKIP (CUDA)")
-        else:
-            torch.manual_seed(0)
-            _report("m2rnn (twin)", srdn.build_m2rnn(V, 64, 2, 4, 16, 2.0, kernel_size=4),
-                    torch.device("cuda"), chunk_size=16, tol_logit=1e-3, tol_rel=1e-2)
     if args.arch in ("gdn2", "all"):
         if not cuda:
             print("gdn2: SKIP (CUDA)")
@@ -76,6 +64,26 @@ def main():
             torch.manual_seed(0)
             m = srdn.build_gdn2(V, 64, 2, 4, 16, 2.0).cuda().train()  # chunk kernel path
             _report("gdn2", m, torch.device("cuda"), chunk_size=16, tol_logit=1e-3, tol_rel=1e-2)
+    if args.arch in ("rwkv7", "all"):
+        if not cuda:
+            print("rwkv7: SKIP (CUDA)")
+        else:
+            torch.manual_seed(0)
+            m = srdn.build_rwkv7(V, 128, 2, 2.0, head_dim=32).cuda().train()  # chunk kernel path
+            _report("rwkv7", m, torch.device("cuda"), chunk_size=16, tol_logit=1e-3, tol_rel=1e-2)
+    if args.arch in ("srdn", "all"):
+        if not cuda:
+            print("srdn: SKIP (CUDA)")
+        else:
+            # SwiGLU channel (the chunkable configuration). The faithful channel mix breaks
+            # chunking (own token-shift state) and must be rejected by Block.chunkable.
+            torch.manual_seed(0)
+            m = srdn.build_srdn(V, 128, 2, 2.0, head_dim=32, fuse_scan=False,
+                                faithful_channel_mix=False).cuda().train()
+            _report("srdn", m, torch.device("cuda"), chunk_size=16, tol_logit=1e-3, tol_rel=1e-2)
+            mf = srdn.build_srdn(V, 128, 2, 2.0, head_dim=32, fuse_scan=False)  # faithful FFN
+            guarded = not any(b.chunkable for b in mf.blocks)
+            print(f"srdn faithful-FFN chunk guard: {'PASS' if guarded else 'FAIL'}")
 
 
 if __name__ == "__main__":

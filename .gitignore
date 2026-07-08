@@ -1,5 +1,6 @@
 refs/
-artifacts/
+artifacts/data/
+artifacts/**/logs/
 __pycache__/
 *.pyc
 .venv/

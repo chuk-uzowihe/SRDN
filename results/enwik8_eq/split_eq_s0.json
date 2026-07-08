@@ -1,0 +1,69 @@
+{
+  "task": "enwik8",
+  "arch": "srdn",
+  "args": {
+    "arch": "srdn",
+    "short_conv": true,
+    "d_model": 128,
+    "n_layers": 2,
+    "n_heads": 4,
+    "ffn_mult": 2.0,
+    "seq_len": 256,
+    "batch": 32,
+    "steps": 1500,
+    "lr": 0.003,
+    "eval_every": 250,
+    "seed": 0,
+    "mamba_state": 64,
+    "mamba_head_dim": 48,
+    "m2rnn_head_dim": 50,
+    "gdn2_head_dim": 28,
+    "gdn2_repo": null,
+    "rwkv7_head_dim": 32,
+    "rwkv7_faithful": false,
+    "rwkv7_hidden_ratio": 5.2578125,
+    "sr_mode": "split",
+    "sr_no_lora": false,
+    "sr_neg_eigval": false,
+    "sr_read_rank": 0,
+    "sr_swiglu_ffn": false,
+    "device": "cuda",
+    "out": "results/enwik8_eq/split_eq_s0.json"
+  },
+  "params": 655616,
+  "final_val_bpc": 2.1286304091140447,
+  "final_val_bpc_seq": 2.111792440373754,
+  "history": [
+    {
+      "step": 250,
+      "train_bpc": 2.5423538303322704,
+      "val_bpc": 2.501448853213951
+    },
+    {
+      "step": 500,
+      "train_bpc": 2.3720944456311073,
+      "val_bpc": 2.3067892579389757
+    },
+    {
+      "step": 750,
+      "train_bpc": 2.31519260973194,
+      "val_bpc": 2.259164273716505
+    },
+    {
+      "step": 1000,
+      "train_bpc": 2.2693322320008162,
+      "val_bpc": 2.1604492203198116
+    },
+    {
+      "step": 1250,
+      "train_bpc": 2.307601983453459,
+      "val_bpc": 2.1360550721344427
+    },
+    {
+      "step": 1500,
+      "train_bpc": 1.876328657121432,
+      "val_bpc": 2.1286304091140447
+    }
+  ],
+  "wall_sec": 410.8
+}

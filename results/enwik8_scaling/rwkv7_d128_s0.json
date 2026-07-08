@@ -1,0 +1,114 @@
+{
+  "task": "enwik8",
+  "arch": "rwkv7",
+  "args": {
+    "arch": "rwkv7",
+    "short_conv": true,
+    "d_model": 128,
+    "n_layers": 2,
+    "n_heads": 4,
+    "ffn_mult": 2.0,
+    "seq_len": 256,
+    "batch": 64,
+    "steps": 721,
+    "lr": 0.003,
+    "eval_every": 50,
+    "seed": 0,
+    "mamba_state": 64,
+    "mamba_head_dim": 48,
+    "m2rnn_head_dim": 50,
+    "gdn2_head_dim": 28,
+    "gdn2_repo": null,
+    "rwkv7_head_dim": 32,
+    "rwkv7_faithful": true,
+    "rwkv7_hidden_ratio": 5.5,
+    "sr_mode": "per_proj",
+    "sr_no_lora": false,
+    "sr_neg_eigval": false,
+    "sr_read_rank": null,
+    "sr_swiglu_ffn": false,
+    "device": "cuda",
+    "out": "artifacts/enwik8_scaling/rwkv7_d128.json"
+  },
+  "params": 602368,
+  "final_val_bpc": 2.115529394208425,
+  "final_val_bpc_seq": 2.121569397180017,
+  "history": [
+    {
+      "step": 50,
+      "train_bpc": 3.1561702302206864,
+      "val_bpc": 3.0829883446081947
+    },
+    {
+      "step": 100,
+      "train_bpc": 2.805712411442347,
+      "val_bpc": 2.70564269370047
+    },
+    {
+      "step": 150,
+      "train_bpc": 2.5451203432540495,
+      "val_bpc": 2.5390482162935304
+    },
+    {
+      "step": 200,
+      "train_bpc": 2.466809247062226,
+      "val_bpc": 2.4544427055649476
+    },
+    {
+      "step": 250,
+      "train_bpc": 2.4558006375804973,
+      "val_bpc": 2.3643819266488273
+    },
+    {
+      "step": 300,
+      "train_bpc": 2.3529673951154,
+      "val_bpc": 2.36445923285039
+    },
+    {
+      "step": 350,
+      "train_bpc": 2.2250037037409274,
+      "val_bpc": 2.2803899210315346
+    },
+    {
+      "step": 400,
+      "train_bpc": 2.323603249289735,
+      "val_bpc": 2.2393918583034353
+    },
+    {
+      "step": 450,
+      "train_bpc": 2.161348969055632,
+      "val_bpc": 2.239752054467836
+    },
+    {
+      "step": 500,
+      "train_bpc": 2.2801793497733844,
+      "val_bpc": 2.22304007032687
+    },
+    {
+      "step": 550,
+      "train_bpc": 2.1740096438815484,
+      "val_bpc": 2.1977724652534314
+    },
+    {
+      "step": 600,
+      "train_bpc": 1.9873300436066075,
+      "val_bpc": 2.134981190964624
+    },
+    {
+      "step": 650,
+      "train_bpc": 2.146914465168716,
+      "val_bpc": 2.1250732059549238
+    },
+    {
+      "step": 700,
+      "train_bpc": 2.1971005505343415,
+      "val_bpc": 2.089250939606709
+    },
+    {
+      "step": 721,
+      "train_bpc": 2.106647135226302,
+      "val_bpc": 2.115529394208425
+    }
+  ],
+  "wall_sec": 20.9
+}

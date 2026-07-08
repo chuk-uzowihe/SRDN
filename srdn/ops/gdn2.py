@@ -1,8 +1,8 @@
 """NVIDIA GatedDeltaNet-2 token mixer (loaded from refs/GatedDeltaNet-2 at runtime).
 
 GDN-2 is NVIDIA Source Code License-NC (non-commercial, NOT redistributable), so it
-is referenced, never vendored: point refs/GatedDeltaNet-2 at a checkout (README has
-the pinned commit). Owns its pre-norm, returns the residual delta.
+is referenced, never vendored: clone it to refs/GatedDeltaNet-2 (README has the
+pinned commit). Owns its pre-norm, returns the residual delta.
 
 chunkable=True: state = a single-layer FLA Cache (chunk_gdn2 recurrent_state +
 ShortConvolution conv_state, both chunk-correct). Rollout forces the `chunk` kernel
@@ -21,29 +21,28 @@ from fla.models.utils import Cache
 
 from srdn.core import RMSNorm
 
-_REFS = Path(__file__).resolve().parents[2] / "refs"
+_GDN2_REPO = Path(__file__).resolve().parents[2] / "refs" / "GatedDeltaNet-2"
 
 
-def import_gdn2_layer(gdn2_repo=None) -> type[nn.Module]:
-    candidates = [Path(gdn2_repo).expanduser()] if gdn2_repo else []
-    candidates += [_REFS / "GatedDeltaNet-2", Path.cwd() / "refs" / "GatedDeltaNet-2"]
-    for repo in candidates:
-        gdn2_path = repo / "lit_gpt" / "gdn2.py"
-        if gdn2_path.exists():
-            pkg_name = f"_srdn_gdn2_{abs(hash(str(repo.resolve())))}"
-            if pkg_name not in sys.modules:
-                pkg = types.ModuleType(pkg_name); pkg.__path__ = [str(repo / "lit_gpt")]
-                sys.modules[pkg_name] = pkg
-                ops = types.ModuleType(f"{pkg_name}.gdn2_ops"); ops.__path__ = [str(repo / "lit_gpt" / "gdn2_ops")]
-                sys.modules[f"{pkg_name}.gdn2_ops"] = ops
-            mod_name = f"{pkg_name}.gdn2"
-            if mod_name not in sys.modules:
-                spec = importlib.util.spec_from_file_location(mod_name, gdn2_path)
-                module = importlib.util.module_from_spec(spec)
-                sys.modules[mod_name] = module
-                spec.loader.exec_module(module)
-            return sys.modules[mod_name].GatedDeltaNet2
-    raise ImportError("GDN-2 not found: clone NVlabs/GatedDeltaNet-2 to refs/ (README has the pin).")
+def _import_gdn2_layer() -> type[nn.Module]:
+    """Load GatedDeltaNet2 from refs/GatedDeltaNet-2/lit_gpt/gdn2.py. The synthetic package
+    shim exists because gdn2.py uses relative imports (.gdn2_ops) but executing the repo's
+    lit_gpt/__init__.py would drag in its full training stack -- so we give gdn2.py a
+    package context without running that __init__."""
+    gdn2_path = _GDN2_REPO / "lit_gpt" / "gdn2.py"
+    if not gdn2_path.exists():
+        raise ImportError("GDN-2 not found: clone NVlabs/GatedDeltaNet-2 to refs/ (README has the pin).")
+    pkg_name = "_srdn_gdn2"
+    if pkg_name not in sys.modules:
+        pkg = types.ModuleType(pkg_name); pkg.__path__ = [str(_GDN2_REPO / "lit_gpt")]
+        sys.modules[pkg_name] = pkg
+        ops = types.ModuleType(f"{pkg_name}.gdn2_ops"); ops.__path__ = [str(_GDN2_REPO / "lit_gpt" / "gdn2_ops")]
+        sys.modules[f"{pkg_name}.gdn2_ops"] = ops
+        spec = importlib.util.spec_from_file_location(f"{pkg_name}.gdn2", gdn2_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[f"{pkg_name}.gdn2"] = module
+        spec.loader.exec_module(module)
+    return sys.modules[f"{pkg_name}.gdn2"].GatedDeltaNet2
 
 
 def _one_layer_cache(state) -> Cache:
@@ -57,9 +56,9 @@ class GDN2Mixer(nn.Module):
     chunkable = True
 
     def __init__(self, d_model, n_heads, head_dim, *, expand_v=1.0, use_short_conv=True,
-                 allow_neg_eigval=True, gdn2_repo=None) -> None:
+                 allow_neg_eigval=True) -> None:
         super().__init__()
-        layer_cls = import_gdn2_layer(gdn2_repo)
+        layer_cls = _import_gdn2_layer()
         self.norm = RMSNorm(int(d_model))
         self.mixer = layer_cls(hidden_size=int(d_model), expand_v=float(expand_v), head_dim=int(head_dim),
                                num_heads=int(n_heads), mode="chunk", use_short_conv=bool(use_short_conv),
@@ -108,4 +107,4 @@ class GDN2Mixer(nn.Module):
         return y[:, 0].float(), cache[0]
 
 
-__all__ = ["GDN2Mixer", "import_gdn2_layer"]
+__all__ = ["GDN2Mixer"]

@@ -1,0 +1,701 @@
+{
+  "task": "frjt",
+  "args": {
+    "archs": "mamba3",
+    "seeds": "0,1,2",
+    "steps": 10000,
+    "batch": 64,
+    "lr": 0.001,
+    "d_model": 128,
+    "layers": 2,
+    "heads": 4,
+    "ffn_mult": 3.5,
+    "depth_min": 1,
+    "depth_max": 16,
+    "max_jump": 4,
+    "dense": false,
+    "eval_depths": "16,32,64,128",
+    "eval_batch": 256,
+    "eval_batches": 4,
+    "eval_every": 500,
+    "curve_eval_batches": 1,
+    "max_seq_len": 4096,
+    "mamba_state": 128,
+    "mamba_head_dim": 64,
+    "m2rnn_head_dim": 16,
+    "gdn2_head_dim": 16,
+    "gdn2_repo": null,
+    "rwkv7_head_dim": 32,
+    "rwkv7_faithful": false,
+    "rwkv7_hidden_ratio": 4.0,
+    "device": "cuda",
+    "out": "results/frjt_eq/frjt_mamba3.json"
+  },
+  "runs": {
+    "mamba3": {
+      "seed_0": {
+        "params": 621968,
+        "eval": {
+          "depth_16": 0.7001953125,
+          "depth_32": 0.6806640625,
+          "depth_64": 0.63671875,
+          "depth_128": 0.6103515625
+        },
+        "history": [
+          {
+            "step": 500,
+            "eval": {
+              "depth_16": 0.59765625,
+              "depth_32": 0.60546875,
+              "depth_64": 0.54296875,
+              "depth_128": 0.50390625
+            },
+            "train_bce": 0.5897600054740906,
+            "state_read_mag": null
+          },
+          {
+            "step": 1000,
+            "eval": {
+              "depth_16": 0.640625,
+              "depth_32": 0.7109375,
+              "depth_64": 0.61328125,
+              "depth_128": 0.60546875
+            },
+            "train_bce": 0.695974588394165,
+            "state_read_mag": null
+          },
+          {
+            "step": 1500,
+            "eval": {
+              "depth_16": 0.66015625,
+              "depth_32": 0.640625,
+              "depth_64": 0.59765625,
+              "depth_128": 0.59375
+            },
+            "train_bce": 0.5270820260047913,
+            "state_read_mag": null
+          },
+          {
+            "step": 2000,
+            "eval": {
+              "depth_16": 0.62109375,
+              "depth_32": 0.65625,
+              "depth_64": 0.59375,
+              "depth_128": 0.59375
+            },
+            "train_bce": 0.5252188444137573,
+            "state_read_mag": null
+          },
+          {
+            "step": 2500,
+            "eval": {
+              "depth_16": 0.671875,
+              "depth_32": 0.640625,
+              "depth_64": 0.6484375,
+              "depth_128": 0.61328125
+            },
+            "train_bce": 0.38076406717300415,
+            "state_read_mag": null
+          },
+          {
+            "step": 3000,
+            "eval": {
+              "depth_16": 0.69921875,
+              "depth_32": 0.7109375,
+              "depth_64": 0.625,
+              "depth_128": 0.609375
+            },
+            "train_bce": 0.5206584930419922,
+            "state_read_mag": null
+          },
+          {
+            "step": 3500,
+            "eval": {
+              "depth_16": 0.6796875,
+              "depth_32": 0.70703125,
+              "depth_64": 0.609375,
+              "depth_128": 0.640625
+            },
+            "train_bce": 0.5269426107406616,
+            "state_read_mag": null
+          },
+          {
+            "step": 4000,
+            "eval": {
+              "depth_16": 0.70703125,
+              "depth_32": 0.6953125,
+              "depth_64": 0.65625,
+              "depth_128": 0.640625
+            },
+            "train_bce": 0.3584105968475342,
+            "state_read_mag": null
+          },
+          {
+            "step": 4500,
+            "eval": {
+              "depth_16": 0.70703125,
+              "depth_32": 0.69140625,
+              "depth_64": 0.60546875,
+              "depth_128": 0.6171875
+            },
+            "train_bce": 0.431407630443573,
+            "state_read_mag": null
+          },
+          {
+            "step": 5000,
+            "eval": {
+              "depth_16": 0.6640625,
+              "depth_32": 0.6640625,
+              "depth_64": 0.61328125,
+              "depth_128": 0.59765625
+            },
+            "train_bce": 0.444782018661499,
+            "state_read_mag": null
+          },
+          {
+            "step": 5500,
+            "eval": {
+              "depth_16": 0.73046875,
+              "depth_32": 0.6953125,
+              "depth_64": 0.625,
+              "depth_128": 0.62109375
+            },
+            "train_bce": 0.48183155059814453,
+            "state_read_mag": null
+          },
+          {
+            "step": 6000,
+            "eval": {
+              "depth_16": 0.734375,
+              "depth_32": 0.67578125,
+              "depth_64": 0.6171875,
+              "depth_128": 0.56640625
+            },
+            "train_bce": 0.46216341853141785,
+            "state_read_mag": null
+          },
+          {
+            "step": 6500,
+            "eval": {
+              "depth_16": 0.7265625,
+              "depth_32": 0.69140625,
+              "depth_64": 0.6484375,
+              "depth_128": 0.57421875
+            },
+            "train_bce": 0.3724895715713501,
+            "state_read_mag": null
+          },
+          {
+            "step": 7000,
+            "eval": {
+              "depth_16": 0.75,
+              "depth_32": 0.671875,
+              "depth_64": 0.62109375,
+              "depth_128": 0.62109375
+            },
+            "train_bce": 0.39236611127853394,
+            "state_read_mag": null
+          },
+          {
+            "step": 7500,
+            "eval": {
+              "depth_16": 0.70703125,
+              "depth_32": 0.71484375,
+              "depth_64": 0.58984375,
+              "depth_128": 0.58984375
+            },
+            "train_bce": 0.38730767369270325,
+            "state_read_mag": null
+          },
+          {
+            "step": 8000,
+            "eval": {
+              "depth_16": 0.70703125,
+              "depth_32": 0.71484375,
+              "depth_64": 0.6015625,
+              "depth_128": 0.61328125
+            },
+            "train_bce": 0.49214068055152893,
+            "state_read_mag": null
+          },
+          {
+            "step": 8500,
+            "eval": {
+              "depth_16": 0.71484375,
+              "depth_32": 0.68359375,
+              "depth_64": 0.62109375,
+              "depth_128": 0.63671875
+            },
+            "train_bce": 0.3365052342414856,
+            "state_read_mag": null
+          },
+          {
+            "step": 9000,
+            "eval": {
+              "depth_16": 0.70703125,
+              "depth_32": 0.70703125,
+              "depth_64": 0.6328125,
+              "depth_128": 0.58984375
+            },
+            "train_bce": 0.38982364535331726,
+            "state_read_mag": null
+          },
+          {
+            "step": 9500,
+            "eval": {
+              "depth_16": 0.7421875,
+              "depth_32": 0.6171875,
+              "depth_64": 0.63671875,
+              "depth_128": 0.6171875
+            },
+            "train_bce": 0.4400097131729126,
+            "state_read_mag": null
+          }
+        ],
+        "wall_sec": 185.8
+      },
+      "seed_1": {
+        "params": 621968,
+        "eval": {
+          "depth_16": 0.70703125,
+          "depth_32": 0.6962890625,
+          "depth_64": 0.6630859375,
+          "depth_128": 0.62109375
+        },
+        "history": [
+          {
+            "step": 500,
+            "eval": {
+              "depth_16": 0.6171875,
+              "depth_32": 0.65234375,
+              "depth_64": 0.63671875,
+              "depth_128": 0.57421875
+            },
+            "train_bce": 0.574689507484436,
+            "state_read_mag": null
+          },
+          {
+            "step": 1000,
+            "eval": {
+              "depth_16": 0.66015625,
+              "depth_32": 0.6171875,
+              "depth_64": 0.59765625,
+              "depth_128": 0.55078125
+            },
+            "train_bce": 0.4897722005844116,
+            "state_read_mag": null
+          },
+          {
+            "step": 1500,
+            "eval": {
+              "depth_16": 0.66015625,
+              "depth_32": 0.68359375,
+              "depth_64": 0.62890625,
+              "depth_128": 0.58984375
+            },
+            "train_bce": 0.502315878868103,
+            "state_read_mag": null
+          },
+          {
+            "step": 2000,
+            "eval": {
+              "depth_16": 0.69140625,
+              "depth_32": 0.6796875,
+              "depth_64": 0.6171875,
+              "depth_128": 0.5625
+            },
+            "train_bce": 0.49874359369277954,
+            "state_read_mag": null
+          },
+          {
+            "step": 2500,
+            "eval": {
+              "depth_16": 0.63671875,
+              "depth_32": 0.6484375,
+              "depth_64": 0.58984375,
+              "depth_128": 0.58984375
+            },
+            "train_bce": 0.5513912439346313,
+            "state_read_mag": null
+          },
+          {
+            "step": 3000,
+            "eval": {
+              "depth_16": 0.6640625,
+              "depth_32": 0.703125,
+              "depth_64": 0.63671875,
+              "depth_128": 0.5859375
+            },
+            "train_bce": 0.4580646753311157,
+            "state_read_mag": null
+          },
+          {
+            "step": 3500,
+            "eval": {
+              "depth_16": 0.71875,
+              "depth_32": 0.68359375,
+              "depth_64": 0.59375,
+              "depth_128": 0.61328125
+            },
+            "train_bce": 0.5387378334999084,
+            "state_read_mag": null
+          },
+          {
+            "step": 4000,
+            "eval": {
+              "depth_16": 0.70703125,
+              "depth_32": 0.65625,
+              "depth_64": 0.6328125,
+              "depth_128": 0.59375
+            },
+            "train_bce": 0.4318569302558899,
+            "state_read_mag": null
+          },
+          {
+            "step": 4500,
+            "eval": {
+              "depth_16": 0.69140625,
+              "depth_32": 0.6484375,
+              "depth_64": 0.640625,
+              "depth_128": 0.59765625
+            },
+            "train_bce": 0.6566957831382751,
+            "state_read_mag": null
+          },
+          {
+            "step": 5000,
+            "eval": {
+              "depth_16": 0.671875,
+              "depth_32": 0.66015625,
+              "depth_64": 0.57421875,
+              "depth_128": 0.59375
+            },
+            "train_bce": 0.3961089253425598,
+            "state_read_mag": null
+          },
+          {
+            "step": 5500,
+            "eval": {
+              "depth_16": 0.71875,
+              "depth_32": 0.59765625,
+              "depth_64": 0.64453125,
+              "depth_128": 0.63671875
+            },
+            "train_bce": 0.4310606122016907,
+            "state_read_mag": null
+          },
+          {
+            "step": 6000,
+            "eval": {
+              "depth_16": 0.70703125,
+              "depth_32": 0.6875,
+              "depth_64": 0.65625,
+              "depth_128": 0.625
+            },
+            "train_bce": 0.42963314056396484,
+            "state_read_mag": null
+          },
+          {
+            "step": 6500,
+            "eval": {
+              "depth_16": 0.72265625,
+              "depth_32": 0.671875,
+              "depth_64": 0.6328125,
+              "depth_128": 0.6015625
+            },
+            "train_bce": 0.44126689434051514,
+            "state_read_mag": null
+          },
+          {
+            "step": 7000,
+            "eval": {
+              "depth_16": 0.7421875,
+              "depth_32": 0.6796875,
+              "depth_64": 0.59765625,
+              "depth_128": 0.52734375
+            },
+            "train_bce": 0.42065995931625366,
+            "state_read_mag": null
+          },
+          {
+            "step": 7500,
+            "eval": {
+              "depth_16": 0.74609375,
+              "depth_32": 0.6875,
+              "depth_64": 0.64453125,
+              "depth_128": 0.57421875
+            },
+            "train_bce": 0.3111829161643982,
+            "state_read_mag": null
+          },
+          {
+            "step": 8000,
+            "eval": {
+              "depth_16": 0.7421875,
+              "depth_32": 0.73828125,
+              "depth_64": 0.60546875,
+              "depth_128": 0.6015625
+            },
+            "train_bce": 0.5553113222122192,
+            "state_read_mag": null
+          },
+          {
+            "step": 8500,
+            "eval": {
+              "depth_16": 0.734375,
+              "depth_32": 0.69140625,
+              "depth_64": 0.609375,
+              "depth_128": 0.58984375
+            },
+            "train_bce": 0.32841917872428894,
+            "state_read_mag": null
+          },
+          {
+            "step": 9000,
+            "eval": {
+              "depth_16": 0.75,
+              "depth_32": 0.71484375,
+              "depth_64": 0.6015625,
+              "depth_128": 0.52734375
+            },
+            "train_bce": 0.3647788166999817,
+            "state_read_mag": null
+          },
+          {
+            "step": 9500,
+            "eval": {
+              "depth_16": 0.73828125,
+              "depth_32": 0.70703125,
+              "depth_64": 0.64453125,
+              "depth_128": 0.66796875
+            },
+            "train_bce": 0.42354118824005127,
+            "state_read_mag": null
+          }
+        ],
+        "wall_sec": 161.0
+      },
+      "seed_2": {
+        "params": 621968,
+        "eval": {
+          "depth_16": 0.7021484375,
+          "depth_32": 0.7099609375,
+          "depth_64": 0.6650390625,
+          "depth_128": 0.625
+        },
+        "history": [
+          {
+            "step": 500,
+            "eval": {
+              "depth_16": 0.66015625,
+              "depth_32": 0.671875,
+              "depth_64": 0.609375,
+              "depth_128": 0.57421875
+            },
+            "train_bce": 0.5447351932525635,
+            "state_read_mag": null
+          },
+          {
+            "step": 1000,
+            "eval": {
+              "depth_16": 0.67578125,
+              "depth_32": 0.62890625,
+              "depth_64": 0.5703125,
+              "depth_128": 0.5703125
+            },
+            "train_bce": 0.6362528800964355,
+            "state_read_mag": null
+          },
+          {
+            "step": 1500,
+            "eval": {
+              "depth_16": 0.6484375,
+              "depth_32": 0.65625,
+              "depth_64": 0.62109375,
+              "depth_128": 0.59375
+            },
+            "train_bce": 0.5031681060791016,
+            "state_read_mag": null
+          },
+          {
+            "step": 2000,
+            "eval": {
+              "depth_16": 0.67578125,
+              "depth_32": 0.6328125,
+              "depth_64": 0.62109375,
+              "depth_128": 0.58203125
+            },
+            "train_bce": 0.5051846504211426,
+            "state_read_mag": null
+          },
+          {
+            "step": 2500,
+            "eval": {
+              "depth_16": 0.68359375,
+              "depth_32": 0.625,
+              "depth_64": 0.61328125,
+              "depth_128": 0.5859375
+            },
+            "train_bce": 0.6090524196624756,
+            "state_read_mag": null
+          },
+          {
+            "step": 3000,
+            "eval": {
+              "depth_16": 0.66015625,
+              "depth_32": 0.62890625,
+              "depth_64": 0.62890625,
+              "depth_128": 0.59765625
+            },
+            "train_bce": 0.43354812264442444,
+            "state_read_mag": null
+          },
+          {
+            "step": 3500,
+            "eval": {
+              "depth_16": 0.671875,
+              "depth_32": 0.6484375,
+              "depth_64": 0.61328125,
+              "depth_128": 0.59375
+            },
+            "train_bce": 0.5092992782592773,
+            "state_read_mag": null
+          },
+          {
+            "step": 4000,
+            "eval": {
+              "depth_16": 0.69140625,
+              "depth_32": 0.6875,
+              "depth_64": 0.6640625,
+              "depth_128": 0.60546875
+            },
+            "train_bce": 0.5476964712142944,
+            "state_read_mag": null
+          },
+          {
+            "step": 4500,
+            "eval": {
+              "depth_16": 0.734375,
+              "depth_32": 0.6875,
+              "depth_64": 0.6328125,
+              "depth_128": 0.6171875
+            },
+            "train_bce": 0.5330818891525269,
+            "state_read_mag": null
+          },
+          {
+            "step": 5000,
+            "eval": {
+              "depth_16": 0.72265625,
+              "depth_32": 0.6796875,
+              "depth_64": 0.58984375,
+              "depth_128": 0.59375
+            },
+            "train_bce": 0.458433598279953,
+            "state_read_mag": null
+          },
+          {
+            "step": 5500,
+            "eval": {
+              "depth_16": 0.69140625,
+              "depth_32": 0.640625,
+              "depth_64": 0.609375,
+              "depth_128": 0.62890625
+            },
+            "train_bce": 0.3875960409641266,
+            "state_read_mag": null
+          },
+          {
+            "step": 6000,
+            "eval": {
+              "depth_16": 0.671875,
+              "depth_32": 0.6875,
+              "depth_64": 0.671875,
+              "depth_128": 0.62109375
+            },
+            "train_bce": 0.39528751373291016,
+            "state_read_mag": null
+          },
+          {
+            "step": 6500,
+            "eval": {
+              "depth_16": 0.7265625,
+              "depth_32": 0.7265625,
+              "depth_64": 0.65625,
+              "depth_128": 0.578125
+            },
+            "train_bce": 0.5091252326965332,
+            "state_read_mag": null
+          },
+          {
+            "step": 7000,
+            "eval": {
+              "depth_16": 0.7109375,
+              "depth_32": 0.6796875,
+              "depth_64": 0.65234375,
+              "depth_128": 0.625
+            },
+            "train_bce": 0.36768320202827454,
+            "state_read_mag": null
+          },
+          {
+            "step": 7500,
+            "eval": {
+              "depth_16": 0.71484375,
+              "depth_32": 0.703125,
+              "depth_64": 0.6015625,
+              "depth_128": 0.6015625
+            },
+            "train_bce": 0.4610069990158081,
+            "state_read_mag": null
+          },
+          {
+            "step": 8000,
+            "eval": {
+              "depth_16": 0.71484375,
+              "depth_32": 0.69140625,
+              "depth_64": 0.65234375,
+              "depth_128": 0.55859375
+            },
+            "train_bce": 0.4086401164531708,
+            "state_read_mag": null
+          },
+          {
+            "step": 8500,
+            "eval": {
+              "depth_16": 0.7109375,
+              "depth_32": 0.67578125,
+              "depth_64": 0.59765625,
+              "depth_128": 0.61328125
+            },
+            "train_bce": 0.3404137194156647,
+            "state_read_mag": null
+          },
+          {
+            "step": 9000,
+            "eval": {
+              "depth_16": 0.72265625,
+              "depth_32": 0.66015625,
+              "depth_64": 0.6171875,
+              "depth_128": 0.54296875
+            },
+            "train_bce": 0.5427103042602539,
+            "state_read_mag": null
+          },
+          {
+            "step": 9500,
+            "eval": {
+              "depth_16": 0.76171875,
+              "depth_32": 0.66796875,
+              "depth_64": 0.625,
+              "depth_128": 0.61328125
+            },
+            "train_bce": 0.5592153072357178,
+            "state_read_mag": null
+          }
+        ],
+        "wall_sec": 166.3
+      }
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "task": "enwik8",
+  "arch": "rwkv7",
+  "args": {
+    "arch": "rwkv7",
+    "short_conv": true,
+    "d_model": 128,
+    "n_layers": 2,
+    "n_heads": 4,
+    "ffn_mult": 2.0,
+    "seq_len": 256,
+    "batch": 32,
+    "steps": 1500,
+    "lr": 0.003,
+    "eval_every": 250,
+    "seed": 0,
+    "mamba_state": 64,
+    "mamba_head_dim": 48,
+    "m2rnn_head_dim": 50,
+    "gdn2_head_dim": 28,
+    "gdn2_repo": null,
+    "rwkv7_head_dim": 32,
+    "rwkv7_faithful": true,
+    "rwkv7_hidden_ratio": 6.2578125,
+    "sr_mode": "per_proj",
+    "sr_no_lora": false,
+    "sr_neg_eigval": false,
+    "sr_read_rank": 0,
+    "sr_swiglu_ffn": false,
+    "device": "cuda",
+    "out": "artifacts/enwik8_eq/rwkv7faithful_eq_s0.json"
+  },
+  "params": 667904,
+  "final_val_bpc": 2.0848167109195135,
+  "final_val_bpc_seq": 2.0658008459735133,
+  "history": [
+    {
+      "step": 250,
+      "train_bpc": 2.5583475289319084,
+      "val_bpc": 2.4881441678540472
+    },
+    {
+      "step": 500,
+      "train_bpc": 2.3570242938666026,
+      "val_bpc": 2.293650062884865
+    },
+    {
+      "step": 750,
+      "train_bpc": 2.2846698167874124,
+      "val_bpc": 2.23940823965093
+    },
+    {
+      "step": 1000,
+      "train_bpc": 2.2314282876465583,
+      "val_bpc": 2.1327718373381463
+    },
+    {
+      "step": 1250,
+      "train_bpc": 2.2982610897371476,
+      "val_bpc": 2.1235027033829073
+    },
+    {
+      "step": 1500,
+      "train_bpc": 1.8463359147068632,
+      "val_bpc": 2.0848167109195135
+    }
+  ],
+  "wall_sec": 23.2
+}

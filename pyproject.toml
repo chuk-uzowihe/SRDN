@@ -1,16 +1,18 @@
 [project]
 name = "srdn"
 version = "0.1.0"
-description = "SRDN: recurrence-complete gated delta-rule linear attention with state-conditioned projections"
+description = "SRDN: recurrence-complete state-reading RWKV-7"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
-    "torch>=2.6",
+    # torch is CUDA-variant-sensitive: cu13x wheels need driver >=580. uv.lock pins a
+    # cu128 build (driver >=550); adjust the variant to your driver, not the version.
+    "torch>=2.6,<2.12",
     "numpy",
-    "scipy",                # graph-RL Delaunay graph sampling
     "einops",
-    "wandb",
-    "pydantic",             # lm-engine (canonical M2RNN baseline)
-    "transformers",         # fla dependency
+    "pydantic",             # lm-engine (reference M2RNN baseline)
+    "transformers>=4.45,<5",  # fla dependency; 5.x breaks the pinned fla commit (FLALayer ABC)
     # fla MUST be this git commit: the only version with BOTH Mamba3 and a working
     # NVIDIA GDN-2 (PR #855 added Mamba3 before PR #867 removed the use_exp2 kwarg
     # that GDN-2's vendored chunk op calls). The PyPI 0.5.0 wheel is broken (no fla.ops).
@@ -23,9 +25,21 @@ dependencies = [
 # External baselines are NOT pip deps -- they are gitignored checkouts under refs/
 # (NVIDIA GDN-2 is non-commercial-licensed and must not be redistributed). See README.
 
+[tool.uv]
+# mamba-ssm is a CUDA source build that imports torch at build time
+no-build-isolation-package = ["mamba-ssm"]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]  # >=77 for SPDX license expression / license-files
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["srdn", "srdn.ops", "tasks", "tasks.enwik8", "tasks.frjt", "tasks.graph_traversal"]
+packages = ["srdn", "srdn.ops", "tasks", "tasks.enwik8", "tasks.frjt"]

@@ -50,6 +50,7 @@ class StateRoutedMoE(nn.Module):
         self.E, self.k = int(n_experts), int(top_k)
         self.d_hidden = int(d_hidden)
         self.router = nn.Linear(d_route, self.E, bias=False)
+        nn.init.normal_(self.router.weight, std=0.02)
         inner = self.d_hidden if self.d_hidden > 0 else d_out
         self.w_gate = nn.Parameter(torch.empty(self.E, d_in, inner))
         self.w_up = nn.Parameter(torch.empty(self.E, d_in, inner))
@@ -100,7 +101,10 @@ class Block(nn.Module):
 
     @property
     def chunkable(self) -> bool:
-        return bool(getattr(self.mixer, "chunkable", False))
+        # a channel mixer with its own cross-token state that is NOT threaded through the chunk
+        # loop (e.g. RWKVChannelMixer's token-shift) would silently reset at every chunk boundary
+        return (bool(getattr(self.mixer, "chunkable", False))
+                and not bool(getattr(self.channel, "breaks_chunking", False)))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x.float() + self.mixer(x).float()
@@ -112,6 +116,10 @@ class Block(nn.Module):
         return self.channel(x), state
 
     def step(self, x_t, state):
+        if getattr(self.channel, "breaks_chunking", False):
+            raise RuntimeError(
+                "this channel mixer carries its own cross-token state and has no step path "
+                "(build with the scaffold SwiGLU channel for rollout)")
         y, state = self.mixer.step(x_t, state)
         x = x_t.float() + y.float()
         return self.channel(x), state
@@ -120,7 +128,8 @@ class Block(nn.Module):
 class SRDNLM(nn.Module):
     """LM + RL-policy surface around a stack of `Block`s (any token mixer)."""
 
-    def __init__(self, vocab_size: int, d_model: int, blocks: list[Block]) -> None:
+    def __init__(self, vocab_size: int, d_model: int, blocks: list[Block],
+                 pos_embed: torch.Tensor | None = None) -> None:
         super().__init__()
         self.vocab_size = int(vocab_size)
         self.d_model = int(d_model)
@@ -128,13 +137,24 @@ class SRDNLM(nn.Module):
         self.blocks = nn.ModuleList(blocks)
         self.final_norm = RMSNorm(self.d_model)
         nn.init.normal_(self.embed.weight, std=self.d_model ** -0.5)
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, std=0.02)
+        # NO blanket re-init here: each mixer/channel owns its init (library cells like fla's
+        # RWKV-7 carry carefully scheduled inits -- zero o_proj, orthogonal r/k/v, LoRA bias
+        # schedules -- that a tree-wide nn.Linear re-init would destroy)
+        # optional absolute positional table (the transformer's sinusoidal PE), added ONCE at
+        # the input embedding so it enters the residual stream -- the standard placement
+        if pos_embed is not None:
+            self.register_buffer("pos_embed", pos_embed, persistent=False)
+        else:
+            self.pos_embed = None
 
     # ---- full sequence ----
     def hidden(self, tokens: torch.Tensor) -> torch.Tensor:
         h = self.embed(tokens)
+        if self.pos_embed is not None:
+            # Vaswani et al.: embeddings are multiplied by sqrt(d_model) before adding PE --
+            # with the d^-0.5 embed init this puts token content at unit scale, comparable to
+            # the unit-amplitude sinusoids (unscaled, PE drowns the tokens ~8x at d=128)
+            h = h * self.d_model ** 0.5 + self.pos_embed[: tokens.shape[1]].to(h.dtype)[None]
         for b in self.blocks:
             h = b(h)
         return self.final_norm(h)
@@ -152,6 +172,10 @@ class SRDNLM(nn.Module):
         del use_xma
         T = int(tokens.shape[1])
         if int(chunk_size) <= 0 or int(chunk_size) >= T or not all(b.chunkable for b in self.blocks):
+            if int(chunk_size) > 0 and int(chunk_size) < T and not getattr(self, "_warned_full_seq", False):
+                self._warned_full_seq = True
+                print("chunked_logits: model not chunkable -> full-sequence BPTT "
+                      "(chunk_size/detach/remat flags ignored)", flush=True)
             return self.logits(tokens)
         B = int(tokens.shape[0])
         states = [b.mixer.init_state(B, tokens.device) for b in self.blocks]
@@ -203,17 +227,27 @@ class SRDNLM(nn.Module):
     # ---- rollout ----
     @torch.no_grad()
     def init_states(self, batch_size, device):
-        return [b.mixer.init_state(int(batch_size), device) for b in self.blocks]
+        states = [b.mixer.init_state(int(batch_size), device) for b in self.blocks]
+        if self.pos_embed is not None:
+            # per-row absolute position for the embedding-level PE (advances only where updated)
+            states.append(torch.zeros(int(batch_size), device=device, dtype=torch.long))
+        return states
 
     @torch.no_grad()
     def step(self, token, states, update_mask=None):
         h = self.embed(token)
+        pos = None
+        if self.pos_embed is not None:
+            states, pos = states[:-1], states[-1]
+            h = h * self.d_model ** 0.5 + self.pos_embed[pos].to(h.dtype)
         new_states = []
         for b, st in zip(self.blocks, states):
             h, nst = b.step(h, st)
             if update_mask is not None:
                 nst = _merge_state(update_mask, nst, st)
             new_states.append(nst)
+        if pos is not None:
+            new_states.append(pos + (update_mask.long() if update_mask is not None else 1))
         logits = self.final_norm(h) @ self.embed.weight.float().T
         self.pop_router_logits()
         if update_mask is not None:

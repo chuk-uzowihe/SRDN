@@ -1,8 +1,10 @@
-"""Causal multi-head attention token mixer (sinusoidal positions, KV-cache rollout).
+"""Causal multi-head attention token mixer (KV-cache rollout).
 
 Parallelizable / TC0-limited reference. chunkable=False -> core trains it full-seq;
-rollout uses a per-mixer KV cache. Owns its pre-norm + positional embedding and
-returns the residual delta.
+rollout uses a per-mixer KV cache. Owns its pre-norm and returns the residual delta.
+Positions are NOT handled here: the standard sinusoidal table is added ONCE at the
+input embedding (SRDNLM pos_embed, wired by build_transformer), entering the residual
+stream exactly as in Vaswani et al.
 """
 from __future__ import annotations
 
@@ -13,6 +15,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from srdn.core import RMSNorm
+
+
+def sinusoidal_table(max_seq_len: int, d_model: int) -> torch.Tensor:
+    pos = torch.arange(int(max_seq_len), dtype=torch.float32).unsqueeze(1)
+    div = torch.exp(torch.arange(0, int(d_model), 2, dtype=torch.float32) * (-math.log(10000.0) / int(d_model)))
+    table = torch.zeros((int(max_seq_len), int(d_model)), dtype=torch.float32)
+    table[:, 0::2] = torch.sin(pos * div)
+    table[:, 1::2] = torch.cos(pos * div[: table[:, 1::2].shape[1]])
+    return table
 
 
 class AttentionMixer(nn.Module):
@@ -29,22 +40,14 @@ class AttentionMixer(nn.Module):
         self.norm = RMSNorm(d)
         self.qkv = nn.Linear(d, 3 * d, bias=False)
         self.out_proj = nn.Linear(d, d, bias=False)
-        self.register_buffer("pos_embed", self._sinusoidal(self.max_seq_len, d), persistent=False)
-
-    @staticmethod
-    def _sinusoidal(max_seq_len, d_model):
-        pos = torch.arange(int(max_seq_len), dtype=torch.float32).unsqueeze(1)
-        div = torch.exp(torch.arange(0, int(d_model), 2, dtype=torch.float32) * (-math.log(10000.0) / int(d_model)))
-        table = torch.zeros((int(max_seq_len), int(d_model)), dtype=torch.float32)
-        table[:, 0::2] = torch.sin(pos * div)
-        table[:, 1::2] = torch.cos(pos * div[: table[:, 1::2].shape[1]])
-        return table
+        nn.init.normal_(self.qkv.weight, std=0.02)
+        nn.init.normal_(self.out_proj.weight, std=0.02)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         bsz, steps, _ = x.shape
         if steps > self.max_seq_len:
             raise ValueError(f"sequence length {steps} exceeds max_seq_len {self.max_seq_len}")
-        xn = self.norm(x) + self.pos_embed[:steps].to(x.device)[None]
+        xn = self.norm(x)
         q, k, v = self.qkv(xn.to(self.qkv.weight.dtype)).chunk(3, dim=-1)
         hd = self.head_dim
         q = q.view(bsz, steps, self.heads, hd).transpose(1, 2)
@@ -68,7 +71,7 @@ class AttentionMixer(nn.Module):
         if int(lengths.max().item()) > self.max_seq_len:
             raise ValueError(f"rollout length exceeds max_seq_len {self.max_seq_len}")
         pos = (lengths - 1).clamp_min(0)
-        xn = self.norm(x_t) + self.pos_embed[pos].to(x_t.device)
+        xn = self.norm(x_t)
         q, k, v = self.qkv(xn.to(self.qkv.weight.dtype)).chunk(3, dim=-1)
         hd = self.head_dim
         q = q.view(bsz, self.heads, 1, hd)
@@ -85,4 +88,4 @@ class AttentionMixer(nn.Module):
         return self.out_proj(y.to(self.out_proj.weight.dtype)).float(), (lengths, kc, vc)
 
 
-__all__ = ["AttentionMixer"]
+__all__ = ["AttentionMixer", "sinusoidal_table"]

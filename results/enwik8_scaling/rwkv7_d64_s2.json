@@ -1,0 +1,89 @@
+{
+  "task": "enwik8",
+  "arch": "rwkv7",
+  "args": {
+    "arch": "rwkv7",
+    "short_conv": true,
+    "d_model": 64,
+    "n_layers": 2,
+    "n_heads": 4,
+    "ffn_mult": 2.0,
+    "seq_len": 256,
+    "batch": 64,
+    "steps": 231,
+    "lr": 0.003,
+    "eval_every": 25,
+    "seed": 2,
+    "mamba_state": 64,
+    "mamba_head_dim": 48,
+    "m2rnn_head_dim": 50,
+    "gdn2_head_dim": 28,
+    "gdn2_repo": null,
+    "rwkv7_head_dim": 32,
+    "rwkv7_faithful": true,
+    "rwkv7_hidden_ratio": 7.0,
+    "sr_mode": "per_proj",
+    "sr_no_lora": false,
+    "sr_neg_eigval": false,
+    "sr_read_rank": null,
+    "sr_swiglu_ffn": false,
+    "device": "cuda",
+    "out": "artifacts/enwik8_scaling/rwkv7_d64_s2.json"
+  },
+  "params": 194688,
+  "final_val_bpc": 2.572974932859598,
+  "final_val_bpc_seq": 2.59170882951316,
+  "history": [
+    {
+      "step": 25,
+      "train_bpc": 3.7900463425404385,
+      "val_bpc": 3.8293097237584415
+    },
+    {
+      "step": 50,
+      "train_bpc": 3.3568106941620663,
+      "val_bpc": 3.3505684548620125
+    },
+    {
+      "step": 75,
+      "train_bpc": 3.217767192488408,
+      "val_bpc": 3.0928336204438245
+    },
+    {
+      "step": 100,
+      "train_bpc": 2.900869208286183,
+      "val_bpc": 2.994664031522174
+    },
+    {
+      "step": 125,
+      "train_bpc": 2.880744142447519,
+      "val_bpc": 2.822105926709578
+    },
+    {
+      "step": 150,
+      "train_bpc": 2.80192174183468,
+      "val_bpc": 2.7293070980003966
+    },
+    {
+      "step": 175,
+      "train_bpc": 2.6452930141102993,
+      "val_bpc": 2.6790104277902667
+    },
+    {
+      "step": 200,
+      "train_bpc": 2.580546705539978,
+      "val_bpc": 2.5966928452617744
+    },
+    {
+      "step": 225,
+      "train_bpc": 2.6697621897271073,
+      "val_bpc": 2.5955942415858937
+    },
+    {
+      "step": 231,
+      "train_bpc": 2.6590101783604663,
+      "val_bpc": 2.572974932859598
+    }
+  ],
+  "wall_sec": 5.6
+}

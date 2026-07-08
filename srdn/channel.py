@@ -41,6 +41,8 @@ class ChannelMixer(nn.Module):
             self.ffn_norm = RMSNorm(d)
             self.ffn_in = nn.Linear(d, 2 * hidden, bias=False)
             self.ffn_out = nn.Linear(hidden, d, bias=False)
+            nn.init.normal_(self.ffn_in.weight, std=0.02)
+            nn.init.normal_(self.ffn_out.weight, std=0.02)
         self._router_logits: list[torch.Tensor] = []
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

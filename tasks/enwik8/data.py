@@ -17,9 +17,15 @@ _SPLITS = (90_000_000, 95_000_000)
 
 
 def load_enwik8(path: Path = ENWIK8):
-    """Return (train, val, test) as uint8 numpy arrays."""
+    """Return (train, val, test) as uint8 numpy arrays (downloads on first use)."""
     if not path.exists():
-        raise FileNotFoundError(f"{path} missing -- download enwik8 (mattmahoney.net/dc/enwik8.zip)")
+        import io, urllib.request, zipfile
+        path.parent.mkdir(parents=True, exist_ok=True)
+        print("downloading enwik8 (100MB) from mattmahoney.net ...", flush=True)
+        raw = urllib.request.urlopen("http://mattmahoney.net/dc/enwik8.zip", timeout=120).read()
+        payload = zipfile.ZipFile(io.BytesIO(raw)).read("enwik8")
+        assert len(payload) == 100_000_000, f"unexpected enwik8 size {len(payload)}"
+        path.write_bytes(payload)
     data = np.frombuffer(path.read_bytes(), dtype=np.uint8)
     a, b = _SPLITS
     return data[:a], data[a:b], data[b:]

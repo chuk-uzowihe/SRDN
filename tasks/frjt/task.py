@@ -1,13 +1,23 @@
-"""FRJT (Flip-Register Jump Table): a non-associative single-cell state-tracking
-diagnostic from arXiv:2510.06828.
+"""FRJT (Flip-Register Jump Table): a non-associative state-tracking diagnostic
+following arXiv:2510.06828.
 
-A program is a list of blocks; each block flips a 1-bit register then conditionally
-jumps by an offset that DEPENDS on the current register value. Predicting the halt
-class requires actually tracking the register through the data-dependent control
-flow -- a recurrence-complete computation that chunk-parallel (TC0) models cannot do
-as the jump-table depth grows. The model reads the token program and must output the
-halt class at the final position (optional dense supervision labels the register
-after every block).
+A program is a list of blocks; each block flips (XORs) a 1-bit register then jumps by
+one of its two forward offsets, selected by the current register value ("each block
+performs two jumps, only one of which will execute depending on a condition
+evaluation"). The halt class is which terminal the program counter lands in (pc ==
+depth vs depth+1). Predicting it requires tracking (pc, register) through the
+data-dependent control flow -- the state space grows with depth, so chunk-parallel
+(TC0) models hit accuracy cliffs as depth grows. Paper-faithful training mixes
+program depths uniformly in [1, depth_max]: short programs give training signal for
+the transition function at every scale (the paper's substitute for register
+supervision); dense_supervision is available but off in the paper-faithful protocol.
+
+NOTE (accuracy floor): the label is necessarily a function of visible tokens, and the
+FINAL block's offsets alone give ~0.64 accuracy without any state tracking (when its
+two offsets agree, the outcome is register-independent; when they differ, it halts A
+with the base rate). Read accuracies against this ~0.64 shortcut floor, not 0.5 --
+a model at ~0.63 deep has learned the local shortcut, not partial state tracking.
+`shortcut_floor()` measures it for a config.
 
 Vocab: PAD, START, INIT0/1, FLIP0/1, then `max_jump` JUMP tokens.
 """
@@ -32,7 +42,6 @@ class FRJTTaskConfig:
     depth_min: int
     depth_max: int
     max_jump: int
-    direct_halt_prob: float = 0.0
     dense_supervision: bool = False
 
 
@@ -49,19 +58,18 @@ def frjt_vocab_size(max_jump: int) -> int:
     return FRJT_JUMP_BASE + int(max_jump)
 
 
-def _sample_offsets(*, remaining, max_jump, direct_halt_prob, rng):
+def _sample_offsets(*, remaining, max_jump, rng):
+    """Exponentially decaying jump length, decay 2/3 per step (closer jumps likelier ->
+    maximize true depth; mean offset ~2.0 -> ~50% code coverage, scaling LINEARLY with
+    depth -- no premature-halt mechanism, so effective depth never asymptotes as nominal
+    depth grows). The two HALTING offsets, when in range (exact halt -> terminal A at
+    pc==depth; overshoot -> terminal B at pc==depth+1), are held at EQUAL weight so the
+    halt class stays ~50/50."""
     max_local = max(1, min(int(max_jump), int(remaining) + 1))
     options = np.arange(1, max_local + 1)
-    weights = 1.0 / options.astype(np.float64)
-    if options.size >= remaining:
-        weights[max(0, remaining - 1)] *= 1.5
+    weights = np.power(2.0 / 3.0, options.astype(np.float64) - 1.0)
     if options.size >= (remaining + 1):
-        weights[remaining] *= 1.25
-    if rng.random() < float(direct_halt_prob):
-        if options.size >= remaining:
-            weights[max(0, remaining - 1)] *= 4.0
-        if options.size >= (remaining + 1):
-            weights[remaining] *= 3.0
+        weights[remaining] = weights[max(0, remaining - 1)]
     weights = weights / np.maximum(weights.sum(), 1e-12)
     return int(rng.choice(options, p=weights)), int(rng.choice(options, p=weights))
 
@@ -73,7 +81,11 @@ def _execute(blocks, init_state):
         reg ^= int(flip)
         pc = pc + (off1 if reg == 1 else off0)
         executed += 1
-    return int((reg ^ (pc & 1)) & 1), executed, pc
+    # halt class = which terminal the program counter lands in. Offsets are capped at
+    # remaining+1, so the halting pc is exactly depth (state A) or depth+1 (state B) --
+    # "the program halts in either state A or B depending on the final location of the
+    # program counter" (arXiv:2510.06828). The register drives the control flow only.
+    return int(pc - depth), executed, pc
 
 
 def _scan_registers(blocks, init_state):
@@ -107,7 +119,7 @@ def generate_frjt_batch(*, cfg: FRJTTaskConfig, batch_size: int, seed: int,
         for i in range(depth):
             flip = int(rng.integers(0, 2))
             off0, off1 = _sample_offsets(remaining=depth - i, max_jump=cfg.max_jump,
-                                         direct_halt_prob=cfg.direct_halt_prob, rng=rng)
+                                         rng=rng)
             blocks.append((flip, off0, off1))
         label, executed, _ = _execute(blocks, init_state)
         exec_counts.append(executed)
@@ -133,6 +145,27 @@ def generate_frjt_batch(*, cfg: FRJTTaskConfig, batch_size: int, seed: int,
                      final_targets=torch.from_numpy(final_tgt).long(), stats=stats)
 
 
+def shortcut_floor(*, cfg: FRJTTaskConfig, depth: int, n: int = 20_000, seed: int = 0) -> float:
+    """Accuracy of the best LOCAL shortcut: majority-vote the label from the FINAL block's
+    offset pair alone (no state tracking). ~0.64 at every depth -- the floor "chance"
+    accuracy should be read against (see module docstring)."""
+    rng = np.random.default_rng(seed)
+    from collections import Counter, defaultdict
+    votes, outcomes = defaultdict(Counter), []
+    for _ in range(int(n)):
+        init_state = int(rng.integers(0, 2))
+        blocks = [(int(rng.integers(0, 2)),
+                   *_sample_offsets(remaining=depth - i, max_jump=cfg.max_jump, rng=rng))
+                  for i in range(int(depth))]
+        label, _, _ = _execute(blocks, init_state)
+        key = blocks[-1][1:]                       # the final block's (off0, off1)
+        votes[key][label] += 1
+        outcomes.append((key, label))
+    majority = {k: c.most_common(1)[0][0] for k, c in votes.items()}
+    return float(np.mean([majority[k] == lab for k, lab in outcomes]))
+
+
 __all__ = ["FRJTTaskConfig", "TaskBatch", "frjt_vocab_size", "generate_frjt_batch",
+           "shortcut_floor",
            "FRJT_PAD", "FRJT_START", "FRJT_INIT0", "FRJT_INIT1", "FRJT_FLIP0", "FRJT_FLIP1",
            "FRJT_JUMP_BASE"]
