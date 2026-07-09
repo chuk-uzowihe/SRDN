@@ -36,10 +36,15 @@ def build(arch: str, vocab: int, args) -> torch.nn.Module:
     if arch == "mamba3":
         return srdn.build_mamba3(vocab, d, L, args.ffn_mult, state_size=args.mamba_state,
                                  head_dim=args.mamba_head_dim)
+    if arch == "mamba2":
+        return srdn.build_mamba2(vocab, d, L, args.ffn_mult, state_size=args.mamba_state,
+                                 head_dim=args.mamba_head_dim)
     if arch == "m2rnn":
         return srdn.build_m2rnn(vocab, d, L, H, args.m2rnn_head_dim, args.ffn_mult, kernel_size=4)
     if arch == "gdn2":
         return srdn.build_gdn2(vocab, d, L, H, args.gdn2_head_dim, args.ffn_mult)
+    if arch == "gdn1":
+        return srdn.build_gdn1(vocab, d, L, H, args.gdn1_head_dim, args.ffn_mult)
     if arch == "rwkv7":
         return srdn.build_rwkv7(vocab, d, L, args.ffn_mult, head_dim=args.rwkv7_head_dim,
                                 faithful_channel_mix=args.rwkv7_faithful,
@@ -153,6 +158,7 @@ def main():
     p.add_argument("--mamba-head-dim", dest="mamba_head_dim", type=int, default=32)
     p.add_argument("--m2rnn-head-dim", dest="m2rnn_head_dim", type=int, default=16)
     p.add_argument("--gdn2-head-dim", dest="gdn2_head_dim", type=int, default=16)
+    p.add_argument("--gdn1-head-dim", dest="gdn1_head_dim", type=int, default=16)
     p.add_argument("--rwkv7-head-dim", dest="rwkv7_head_dim", type=int, default=32)
     p.add_argument("--rwkv7-faithful", dest="rwkv7_faithful", action="store_true",
                    help="paper-faithful RWKV-7: native channel mix (token-shift + sqReLU) vs shared SwiGLU")

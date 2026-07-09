@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# enwik8 for the baseline archs (blog protocol): d_model=128, 4 archs x 3 seeds, sequential.
+# enwik8 for the baseline archs (blog protocol): d_model=128, 6 archs x 3 seeds, sequential.
 # PARAM-EQUALIZED, 'faithful' family: natural head dims (dh32 -- matrix-state archs all carry
-# 4x32^2=4096 state/layer; mamba3 gets its natural state_size=128 at head_dim=64); per-arch
+# 4x32^2=4096 state/layer; mamba3/mamba2 get their natural state_size=128 at head_dim=64); per-arch
 # --ffn-mult widens each baseline to the anchor (srdn per_proj @ native channel mix r4 =
 # 655,616 params; all within +-4%, see artifacts/param_equalization.json).
 # rwkv7 and srdn run via run_rwkv7_faithful.sh / run_srdn.sh. Outputs -> results/enwik8_eq/.
@@ -15,8 +15,10 @@ for seed in 0 1 2; do
   for spec in \
     "transformer|--arch transformer --ffn-mult 5.0" \
     "mamba3|--arch mamba3 --mamba-state 128 --mamba-head-dim 64 --ffn-mult 3.5" \
+    "mamba2|--arch mamba2 --mamba-state 128 --mamba-head-dim 64 --ffn-mult 3.5" \
     "m2rnn|--arch m2rnn --m2rnn-head-dim 32 --ffn-mult 5.0" \
-    "gdn2|--arch gdn2 --gdn2-head-dim 32 --ffn-mult 4.0"; do
+    "gdn2|--arch gdn2 --gdn2-head-dim 32 --ffn-mult 4.0" \
+    "gdn1|--arch gdn1 --gdn1-head-dim 32 --ffn-mult 4.5"; do
     name="${spec%%|*}"; args="${spec#*|}"
     stamp "$name seed=$seed START"
     $PY tasks/enwik8/train.py $args --d-model 128 --seed "$seed" \

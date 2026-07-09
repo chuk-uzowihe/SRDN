@@ -25,8 +25,10 @@ _MODULES = {
     "SRDNMixer": "srdn.ops.srdn",
     "AttentionMixer": "srdn.ops.attention",
     "Mamba3Mixer": "srdn.ops.mamba3",
+    "Mamba2Mixer": "srdn.ops.mamba2",
     "M2RNNMixer": "srdn.ops.m2rnn",
     "GDN2Mixer": "srdn.ops.gdn2",
+    "GDN1Mixer": "srdn.ops.gdn1",
 }
 
 

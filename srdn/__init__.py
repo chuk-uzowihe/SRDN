@@ -7,8 +7,9 @@ via the builders.
 """
 from .core import Block, SRDNLM
 from .channel import ChannelMixer
-from .builders import (build_srdn, build_transformer, build_mamba3, build_m2rnn,
-                       build_gdn2, build_rwkv7, BUILDERS)
+from .builders import (build_srdn, build_transformer, build_mamba3, build_mamba2,
+                       build_m2rnn, build_gdn2, build_gdn1, build_rwkv7, BUILDERS)
 
 __all__ = ["Block", "SRDNLM", "ChannelMixer", "build_srdn", "build_transformer",
-           "build_mamba3", "build_m2rnn", "build_gdn2", "build_rwkv7", "BUILDERS"]
+           "build_mamba3", "build_mamba2", "build_m2rnn", "build_gdn2", "build_gdn1",
+           "build_rwkv7", "BUILDERS"]

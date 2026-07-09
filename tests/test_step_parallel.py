@@ -38,7 +38,8 @@ def _report(name, model, device, tol):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--arch", choices=["srdn", "transformer", "mamba3", "gdn2", "rwkv7", "all"], default="all")
+    p.add_argument("--arch", choices=["srdn", "transformer", "mamba3", "mamba2", "gdn2", "gdn1",
+                                      "rwkv7", "all"], default="all")
     args = p.parse_args()
     V = 261
     cpu, cuda = torch.device("cpu"), (torch.device("cuda") if torch.cuda.is_available() else None)
@@ -65,12 +66,29 @@ def main():
             # kernels, and inductor/autotune recompiles shift the worst-element error by
             # 1-3e-2 across equivalent builds (measured); 5e-2 is outside that noise band
             _report("mamba3", srdn.build_mamba3(V, 64, 2), cuda, 5e-2)
+    if args.arch in ("mamba2", "all"):
+        # Mamba-2 decode: mamba_ssm's Triton selective_state_update + conv-buffer roll vs the
+        # full-seq mamba_chunk_scan_combined kernel. CUDA-only.
+        if cuda is None:
+            print("mamba2             SKIP (CUDA)")
+        else:
+            torch.manual_seed(0)
+            _report("mamba2", srdn.build_mamba2(V, 64, 2), cuda, 2e-2)
     if args.arch in ("gdn2", "all"):
         if cuda is None:
             print("gdn2: SKIP (CUDA)")
         else:
             torch.manual_seed(0)
             _report("gdn2", srdn.build_gdn2(V, 64, 2, 4, 16, 2.0), cuda, 2e-3)
+    if args.arch in ("gdn1", "all"):
+        if cuda is None:
+            print("gdn1: SKIP (CUDA)")
+        else:
+            # tol: fla's gated_delta_rule chunk kernel does TF32 tl.dot (~1e-3 relative);
+            # regrouping the sequence into per-step calls rounds differently, giving a flat
+            # (non-growing) few-e-3 band -- unlike gdn2's vendored fp32-dot kernel (2e-3).
+            torch.manual_seed(0)
+            _report("gdn1", srdn.build_gdn1(V, 64, 2, 4, 16, 2.0), cuda, 2e-2)
     if args.arch in ("rwkv7", "all"):
         # RWKV-7: decode (fused_recurrent) vs full-seq, both eval-mode (<64 -> same kernel).
         # CUDA-only; loose tol (bf16 LoRA path). 2-layer exercises v_first produce->consume.

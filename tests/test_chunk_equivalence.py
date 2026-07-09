@@ -53,7 +53,7 @@ def _report(name, model, device, *, chunk_size, tol_logit, tol_rel):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--arch", choices=["srdn", "gdn2", "rwkv7", "all"], default="all")
+    p.add_argument("--arch", choices=["srdn", "gdn2", "gdn1", "rwkv7", "all"], default="all")
     args = p.parse_args()
     V = 261
     cuda = torch.cuda.is_available()
@@ -64,6 +64,16 @@ def main():
             torch.manual_seed(0)
             m = srdn.build_gdn2(V, 64, 2, 4, 16, 2.0).cuda().train()  # chunk kernel path
             _report("gdn2", m, torch.device("cuda"), chunk_size=16, tol_logit=1e-3, tol_rel=1e-2)
+    if args.arch in ("gdn1", "all"):
+        if not cuda:
+            print("gdn1: SKIP (CUDA)")
+        else:
+            # looser tols than gdn2: fla's gated_delta_rule kernels do TF32 tl.dot
+            # (~1e-3 relative), so chunk-boundary regrouping shifts logits/grads by a flat
+            # few-e-3 band (measured 7e-3 / 1.2e-2) that is precision, not state-carry error.
+            torch.manual_seed(0)
+            m = srdn.build_gdn1(V, 64, 2, 4, 16, 2.0).cuda().train()  # chunk kernel path
+            _report("gdn1", m, torch.device("cuda"), chunk_size=16, tol_logit=2e-2, tol_rel=5e-2)
     if args.arch in ("rwkv7", "all"):
         if not cuda:
             print("rwkv7: SKIP (CUDA)")

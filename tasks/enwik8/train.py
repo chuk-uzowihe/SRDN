@@ -32,10 +32,15 @@ def build(arch, args):
     if arch == "mamba3":
         return srdn.build_mamba3(VOCAB_SIZE, d, L, args.ffn_mult, state_size=args.mamba_state,
                                  head_dim=args.mamba_head_dim)
+    if arch == "mamba2":
+        return srdn.build_mamba2(VOCAB_SIZE, d, L, args.ffn_mult, state_size=args.mamba_state,
+                                 head_dim=args.mamba_head_dim)
     if arch == "m2rnn":
         return srdn.build_m2rnn(VOCAB_SIZE, d, L, H, args.m2rnn_head_dim, args.ffn_mult, kernel_size=4)
     if arch == "gdn2":
         return srdn.build_gdn2(VOCAB_SIZE, d, L, H, args.gdn2_head_dim, args.ffn_mult)
+    if arch == "gdn1":
+        return srdn.build_gdn1(VOCAB_SIZE, d, L, H, args.gdn1_head_dim, args.ffn_mult)
     if arch == "rwkv7":
         return srdn.build_rwkv7(VOCAB_SIZE, d, L, args.ffn_mult, head_dim=args.rwkv7_head_dim,
                                 faithful_channel_mix=args.rwkv7_faithful,
@@ -92,7 +97,8 @@ def eval_bpc(model, split, args, device, gen, n_batches=8):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--arch", required=True, choices=["srdn", "transformer", "mamba3", "m2rnn", "gdn2", "rwkv7"])
+    p.add_argument("--arch", required=True, choices=["srdn", "transformer", "mamba3", "mamba2",
+                                                     "m2rnn", "gdn2", "gdn1", "rwkv7"])
     p.add_argument("--d-model", dest="d_model", type=int, default=128)
     p.add_argument("--n-layers", dest="n_layers", type=int, default=2)
     p.add_argument("--n-heads", dest="n_heads", type=int, default=4)
@@ -107,6 +113,7 @@ def main():
     p.add_argument("--mamba-head-dim", dest="mamba_head_dim", type=int, default=48)
     p.add_argument("--m2rnn-head-dim", dest="m2rnn_head_dim", type=int, default=50)
     p.add_argument("--gdn2-head-dim", dest="gdn2_head_dim", type=int, default=28)
+    p.add_argument("--gdn1-head-dim", dest="gdn1_head_dim", type=int, default=32)
     p.add_argument("--rwkv7-head-dim", dest="rwkv7_head_dim", type=int, default=32)
     p.add_argument("--rwkv7-faithful", dest="rwkv7_faithful", action="store_true",
                    help="paper-faithful RWKV-7: native channel mix (token-shift + sqReLU) vs shared SwiGLU")

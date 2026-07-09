@@ -77,6 +77,16 @@ def build_mamba3(vocab_size, d_model, n_layers, ffn_mult=2.0, *, state_size=128,
                      n_experts=n_experts, top_k=top_k, expert_mult=expert_mult)
 
 
+def build_mamba2(vocab_size, d_model, n_layers, ffn_mult=2.0, *, state_size=128, expand=2,
+                 head_dim=64, n_groups=1, chunk_size=64,
+                 moe_ffn=False, n_experts=4, top_k=2, expert_mult=2.3) -> SRDNLM:
+    from .ops.mamba2 import Mamba2Mixer
+    mixers = [Mamba2Mixer(d_model, state_size=state_size, expand=expand, head_dim=head_dim,
+                          n_groups=n_groups, chunk_size=chunk_size) for _ in range(n_layers)]
+    return _assemble(vocab_size, d_model, mixers, ffn_mult=ffn_mult, moe_ffn=moe_ffn,
+                     n_experts=n_experts, top_k=top_k, expert_mult=expert_mult)
+
+
 def build_m2rnn(vocab_size, d_model, n_layers, n_heads, head_dim, ffn_mult=2.0, *,
                 kernel_size=4, moe_ffn=False, n_experts=4, top_k=2, expert_mult=2.3) -> SRDNLM:
     from .ops.m2rnn import M2RNNMixer
@@ -91,6 +101,18 @@ def build_gdn2(vocab_size, d_model, n_layers, n_heads, head_dim, ffn_mult=2.0, *
                moe_ffn=False, n_experts=4, top_k=2, expert_mult=2.3) -> SRDNLM:
     from .ops.gdn2 import GDN2Mixer
     mixers = [GDN2Mixer(d_model, n_heads, head_dim, expand_v=expand_v, use_short_conv=use_short_conv,
+                        allow_neg_eigval=allow_neg_eigval) for _ in range(n_layers)]
+    return _assemble(vocab_size, d_model, mixers, ffn_mult=ffn_mult, moe_ffn=moe_ffn,
+                     n_experts=n_experts, top_k=top_k, expert_mult=expert_mult)
+
+
+def build_gdn1(vocab_size, d_model, n_layers, n_heads, head_dim, ffn_mult=2.0, *,
+               expand_v=1.0, use_short_conv=True, allow_neg_eigval=True,
+               moe_ffn=False, n_experts=4, top_k=2, expert_mult=2.3) -> SRDNLM:
+    """Gated DeltaNet (GDN-1, fla). allow_neg_eigval=True (a = 2*sigmoid, eigenvalue range
+    ~[-1,1]) to match the gdn2 baseline's setting -- it adds no parameters."""
+    from .ops.gdn1 import GDN1Mixer
+    mixers = [GDN1Mixer(d_model, n_heads, head_dim, expand_v=expand_v, use_short_conv=use_short_conv,
                         allow_neg_eigval=allow_neg_eigval) for _ in range(n_layers)]
     return _assemble(vocab_size, d_model, mixers, ffn_mult=ffn_mult, moe_ffn=moe_ffn,
                      n_experts=n_experts, top_k=top_k, expert_mult=expert_mult)
@@ -115,7 +137,8 @@ def build_rwkv7(vocab_size, d_model, n_layers, ffn_mult=2.0, *, head_dim=32, val
 
 
 BUILDERS = {"srdn": build_srdn, "transformer": build_transformer, "mamba3": build_mamba3,
-            "m2rnn": build_m2rnn, "gdn2": build_gdn2, "rwkv7": build_rwkv7}
+            "mamba2": build_mamba2, "m2rnn": build_m2rnn, "gdn2": build_gdn2,
+            "gdn1": build_gdn1, "rwkv7": build_rwkv7}
 
-__all__ = ["build_srdn", "build_transformer", "build_mamba3", "build_m2rnn", "build_gdn2",
-           "build_rwkv7", "BUILDERS"]
+__all__ = ["build_srdn", "build_transformer", "build_mamba3", "build_mamba2", "build_m2rnn",
+           "build_gdn2", "build_gdn1", "build_rwkv7", "BUILDERS"]

@@ -29,12 +29,16 @@ def build(arch, L, *, ffn=2.0, hidden_ratio=4.0):
         return srdn.build_transformer(V, D, L, H, ffn, max_seq_len=4096)
     if arch == "mamba3":
         return srdn.build_mamba3(V, D, L, ffn, state_size=128, head_dim=64)  # d128-final config
+    if arch == "mamba2":
+        return srdn.build_mamba2(V, D, L, ffn, state_size=128, head_dim=64)  # natural, matches mamba3
     # NATURAL head dims (dh32 = d/H); FFN width does the equalizing. dh32 makes matrix-state
     # size EXACTLY matched across gdn2/m2rnn/rwkv7/srdn: 4x32^2 = 4096/layer.
     if arch == "m2rnn":
         return srdn.build_m2rnn(V, D, L, H, 32, ffn)
     if arch == "gdn2":
         return srdn.build_gdn2(V, D, L, H, 32, ffn)
+    if arch == "gdn1":
+        return srdn.build_gdn1(V, D, L, H, 32, ffn)
     if arch == "rwkv7":
         return srdn.build_rwkv7(V, D, L, ffn, head_dim=32)
     if arch == "rwkv7_faithful":
@@ -71,7 +75,7 @@ def main():
         for L in (2, 4):
             target = TARGETS[(family, L)]
             print(f"\n== family={family} L={L} d{D} (anchor target {target:,}) ==")
-            archs = ["transformer", "mamba3", "m2rnn", "gdn2"]
+            archs = ["transformer", "mamba3", "mamba2", "m2rnn", "gdn2", "gdn1"]
             archs.append("rwkv7_faithful" if family == "faithful" else "rwkv7")
             for arch in archs:
                 if arch == "rwkv7_faithful":

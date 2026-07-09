@@ -15,8 +15,10 @@ COMMON="--seeds 0,1,2 --steps 10000 --batch 64 --lr 1e-3 --d-model 128 --layers 
 for spec in \
   "transformer|--archs transformer --ffn-mult 5.0" \
   "mamba3|--archs mamba3 --mamba-state 128 --mamba-head-dim 64 --ffn-mult 3.5" \
+  "mamba2|--archs mamba2 --mamba-state 128 --mamba-head-dim 64 --ffn-mult 3.5" \
   "m2rnn|--archs m2rnn --m2rnn-head-dim 32 --ffn-mult 5.0" \
-  "gdn2|--archs gdn2 --gdn2-head-dim 32 --ffn-mult 4.0"; do
+  "gdn2|--archs gdn2 --gdn2-head-dim 32 --ffn-mult 4.0" \
+  "gdn1|--archs gdn1 --gdn1-head-dim 32 --ffn-mult 4.5"; do
   name="${spec%%|*}"; args="${spec#*|}"
   stamp "frjt_eq $name START"
   $PY tasks/frjt/compare.py $args $COMMON \

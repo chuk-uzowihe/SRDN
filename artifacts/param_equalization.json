@@ -5,8 +5,10 @@
   "vocab_for_counts": 256,
   "head_dims": {
    "gdn2": 32,
+   "gdn1": 32,
    "m2rnn": 32,
    "mamba3": "state128/hd64",
+   "mamba2": "state128/hd64",
    "rwkv7": 32,
    "srdn": 32
   }
@@ -35,6 +37,12 @@
       "delta_pct": 2.45,
       "state_per_layer": "256x128=32768 (SSM)"
      },
+     "mamba2": {
+      "knob": "ffn_mult 3.0",
+      "params": 597144,
+      "delta_pct": 1.24,
+      "state_per_layer": "256x128=32768 (SSM)"
+     },
      "m2rnn": {
       "knob": "ffn_mult 4.5",
       "params": 601744,
@@ -45,6 +53,12 @@
       "knob": "ffn_mult 3.5",
       "params": 610504,
       "delta_pct": 3.51,
+      "state_per_layer": "4x32x32=4096"
+     },
+     "gdn1": {
+      "knob": "ffn_mult 4.0",
+      "params": 595664,
+      "delta_pct": 0.99,
       "state_per_layer": "4x32x32=4096"
      },
      "rwkv7": {
@@ -83,6 +97,12 @@
       "delta_pct": 1.79,
       "state_per_layer": "256x128=32768 (SSM)"
      },
+     "mamba2": {
+      "knob": "ffn_mult 3.0",
+      "params": 1161392,
+      "delta_pct": 0.55,
+      "state_per_layer": "256x128=32768 (SSM)"
+     },
      "m2rnn": {
       "knob": "ffn_mult 4.5",
       "params": 1170592,
@@ -93,6 +113,12 @@
       "knob": "ffn_mult 3.5",
       "params": 1188112,
       "delta_pct": 2.86,
+      "state_per_layer": "4x32x32=4096"
+     },
+     "gdn1": {
+      "knob": "ffn_mult 4.0",
+      "params": 1158432,
+      "delta_pct": 0.29,
       "state_per_layer": "4x32x32=4096"
      },
      "rwkv7": {
@@ -133,6 +159,12 @@
       "delta_pct": -0.33,
       "state_per_layer": "256x128=32768 (SSM)"
      },
+     "mamba2": {
+      "knob": "ffn_mult 3.5",
+      "params": 646296,
+      "delta_pct": -1.42,
+      "state_per_layer": "256x128=32768 (SSM)"
+     },
      "m2rnn": {
       "knob": "ffn_mult 5.0",
       "params": 650896,
@@ -143,6 +175,12 @@
       "knob": "ffn_mult 4.0",
       "params": 659656,
       "delta_pct": 0.62,
+      "state_per_layer": "4x32x32=4096"
+     },
+     "gdn1": {
+      "knob": "ffn_mult 4.5",
+      "params": 644816,
+      "delta_pct": -1.65,
       "state_per_layer": "4x32x32=4096"
      },
      "rwkv7_faithful": {
@@ -189,6 +227,12 @@
       "delta_pct": -0.98,
       "state_per_layer": "256x128=32768 (SSM)"
      },
+     "mamba2": {
+      "knob": "ffn_mult 3.5",
+      "params": 1259696,
+      "delta_pct": -2.1,
+      "state_per_layer": "256x128=32768 (SSM)"
+     },
      "m2rnn": {
       "knob": "ffn_mult 5.0",
       "params": 1268896,
@@ -199,6 +243,12 @@
       "knob": "ffn_mult 4.0",
       "params": 1286416,
       "delta_pct": -0.02,
+      "state_per_layer": "4x32x32=4096"
+     },
+     "gdn1": {
+      "knob": "ffn_mult 4.5",
+      "params": 1256736,
+      "delta_pct": -2.33,
       "state_per_layer": "4x32x32=4096"
      },
      "rwkv7_faithful": {
